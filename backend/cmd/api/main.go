@@ -31,6 +31,11 @@ func main() {
 		}
 	}()
 
+	if err := db.Migrate(gormDB); err != nil {
+		slog.Error("failed to migrate database", "error", err)
+		os.Exit(1)
+	}
+
 	e := echo.New()
 	e.Use(middleware.Recover())
 	e.Use(middleware.RequestLogger())
@@ -41,6 +46,10 @@ func main() {
 
 	healthHandler := handler.NewHealthHandler(gormDB)
 	e.GET("/api/health", healthHandler.Get)
+
+	foodHandler := handler.NewFoodHandler(gormDB)
+	e.GET("/api/foods", foodHandler.List)
+	e.POST("/api/foods", foodHandler.Create)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

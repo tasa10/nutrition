@@ -1,9 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+import { API_BASE_URL } from "@/lib/api";
 
 type HealthResponse = {
   status: string;
@@ -78,6 +77,13 @@ export default function Home() {
             バックエンドが起動しているか確認してください。
           </p>
         )}
+
+        <Link
+          href="/foods"
+          className="mt-2 rounded-full bg-black px-5 py-2 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-50 dark:text-black dark:hover:bg-zinc-300"
+        >
+          食品マスタを見る
+        </Link>
       </main>
     </div>
   );

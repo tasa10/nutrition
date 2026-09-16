@@ -57,8 +57,14 @@ docker compose up --build
 
 ## 現在実装済みの機能
 
-- `GET /api/health`: APIとDBの疎通確認用エンドポイント（`{"status":"ok","db":"ok"}`）
-- トップページ: 上記APIを呼び出して結果を表示するだけの画面
+- `GET /api/health`: APIとDBの疎通確認用エンドポイント（`{"status":"ok","db":"ok"}`、DB不通時は503）
+- `GET /api/foods`: 食品マスタ（`foods` テーブル）の一覧
+- `POST /api/foods`: 食品の追加（`name` と `base_unit` を受け取り、`source_type` は `user` 固定）
+- トップページ `/`: ヘルスチェック結果の表示
+- 食品マスタページ `/foods/`: `foods` テーブルの中身をテーブル表示
+- 食品追加ページ `/foods/new/`: 食品名と基準量を入力して登録
+
+起動時に GORM の AutoMigrate で `foods` テーブルを作成し、空であればサンプル5件を投入する（`backend/internal/db/migrate.go`）。
 
 ## 実装方針・決定事項メモ
 
