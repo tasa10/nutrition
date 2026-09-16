@@ -35,7 +35,7 @@ frontend-sh: ## frontendコンテナにシェルで入る
 	$(COMPOSE) exec frontend sh
 
 db-sh: ## dbコンテナにpsqlで入る
-	$(COMPOSE) exec db psql -U $${POSTGRES_USER:-nutrition} -d $${POSTGRES_DB:-nutrition}
+	$(COMPOSE) exec db sh -c 'psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"'
 
 clean: down-v ## ボリューム削除＋ローカルビルドイメージも削除
 	$(COMPOSE) down --rmi local
