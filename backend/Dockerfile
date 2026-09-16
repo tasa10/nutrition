@@ -13,4 +13,5 @@ RUN apk add --no-cache ca-certificates \
 COPY --from=build /out/api /usr/local/bin/api
 USER app
 EXPOSE 8080
+
 ENTRYPOINT ["api"]
