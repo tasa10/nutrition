@@ -30,10 +30,24 @@
 
 ## 起動方法
 
+`make` が使える環境（WSL / Git Bash + make導入済み など）:
+
+```bash
+make up       # フォアグラウンドでビルド＆起動
+make up-d     # バックグラウンドで起動
+make down     # 停止
+make logs     # ログ追従
+make ps       # 状態確認
+```
+
+`make` が無い場合（素のPowerShellなど）は直接 docker compose を使う:
+
 ```bash
 cp .env.example .env
 docker compose up --build
 ```
+
+主なMakeターゲットは `Makefile` を参照（`backend-sh` / `frontend-sh` / `db-sh` でコンテナに入れる、`down-v` でボリュームごと削除、`clean` でローカルイメージも削除）。
 
 - フロントエンド: http://localhost:3000
 - バックエンドAPI: http://localhost:8080/api/health
