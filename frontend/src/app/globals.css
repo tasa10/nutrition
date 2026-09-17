@@ -3,6 +3,7 @@
 @theme inline {
   --font-sans: var(--font-noto-sans-jp), -apple-system, system-ui, sans-serif;
   --font-mono: var(--font-dm-mono), ui-monospace, monospace;
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
 
   --color-canvas: #e7e1d6;
   --color-paper: #faf7f2;

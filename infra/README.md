@@ -105,7 +105,7 @@ Firebase コンソール → Authentication → Settings → **承認済みド�
 - **API の変更**: `backend/` を `main` に push すれば自動デプロイ。Terraform はイメージを管理しない（`ignore_changes`）
 - **フロントの変更**: `main` に push すれば Vercel が自動デプロイ
 - **環境変数・スケール・DB サイズなどの変更**: `infra/` を編集して `make tf-plan` → `make tf-apply`
-- **AI キーの更新**: `terraform.tfvars` を変えて apply。Cloud Run は `latest` バージョンを参照するので次のリビジョンから反映（すぐ反映したいときは Deploy API を再実行）
+- **AI キーの更新**: `terraform.tfvars` を変えて apply。Secret の新しい版が作られ、Cloud Run はその版番号を参照しているので、同じ apply で新しいリビジョンが出て即反映される（Secret はコンテナ起動時にしか読まないため、`latest` 参照だと古いインスタンスが残る）
 
 ## 注意
 
