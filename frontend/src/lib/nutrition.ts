@@ -127,12 +127,48 @@ export const SOURCE_LABEL: Record<string, string> = {
   manual: "手動追加",
 };
 
-export function todayISO(): string {
-  const d = new Date();
+function toISODate(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
+}
+
+export function todayISO(): string {
+  return toISODate(new Date());
+}
+
+// Dates are handled as local calendar days; the T00:00:00 suffix keeps Date from treating them as UTC.
+function parseISODate(date: string): Date {
+  return new Date(`${date}T00:00:00`);
+}
+
+export function isISODate(v: string | null | undefined): v is string {
+  return !!v && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(parseISODate(v).getTime());
+}
+
+export function addDays(date: string, n: number): string {
+  const d = parseISODate(date);
+  d.setDate(d.getDate() + n);
+  return toISODate(d);
+}
+
+const WEEKDAY_JP = ["日", "月", "火", "水", "木", "金", "土"];
+
+export function weekdayJP(date: string): string {
+  return WEEKDAY_JP[parseISODate(date).getDay()];
+}
+
+// "9月15日（月）"
+export function formatDateJP(date: string): string {
+  const d = parseISODate(date);
+  return `${d.getMonth() + 1}月${d.getDate()}日（${weekdayJP(date)}）`;
+}
+
+// "9/15"
+export function formatMonthDay(date: string): string {
+  const d = parseISODate(date);
+  return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
 export function formatTime(iso: string): string {

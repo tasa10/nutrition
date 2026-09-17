@@ -10,15 +10,20 @@ import {
   type Slot,
   SLOT_LABEL,
   deleteMeal,
+  formatDateJP,
   getDay,
+  isISODate,
   isSlot,
   nf,
   todayISO,
   upsertMeal,
 } from "@/lib/nutrition";
 
-function EditScreen({ slot }: { slot: Slot }) {
+function EditScreen({ slot, date }: { slot: Slot; date: string }) {
   const router = useRouter();
+  const isToday = date === todayISO();
+  // Past days are reached from the history screen, so return there with the same day selected.
+  const backHref = isToday ? "/" : `/history/?date=${date}`;
   const [meal, setMeal] = useState<Meal | null | undefined>(undefined);
   const [items, setItems] = useState<MealItem[]>([]);
   const [busy, setBusy] = useState(false);
@@ -26,7 +31,7 @@ function EditScreen({ slot }: { slot: Slot }) {
 
   useEffect(() => {
     let cancelled = false;
-    getDay(todayISO())
+    getDay(date)
       .then((d) => {
         if (cancelled) return;
         const m = d.meals.find((x) => x.slot === slot) ?? null;
@@ -42,7 +47,7 @@ function EditScreen({ slot }: { slot: Slot }) {
     return () => {
       cancelled = true;
     };
-  }, [slot]);
+  }, [slot, date]);
 
   function patch(idx: number, key: keyof MealItem, val: string | number) {
     setItems((xs) => xs.map((it, n) => (n === idx ? { ...it, [key]: val } : it)));
@@ -55,11 +60,11 @@ function EditScreen({ slot }: { slot: Slot }) {
     setError(null);
     try {
       if (kept.length === 0) {
-        await deleteMeal(todayISO(), slot);
+        await deleteMeal(date, slot);
       } else {
-        await upsertMeal(todayISO(), slot, "edited", kept);
+        await upsertMeal(date, slot, "edited", kept);
       }
-      router.push("/");
+      router.push(backHref);
     } catch (e) {
       setError(e instanceof Error ? e.message : "unknown error");
       setBusy(false);
@@ -71,8 +76,8 @@ function EditScreen({ slot }: { slot: Slot }) {
     setBusy(true);
     setError(null);
     try {
-      await deleteMeal(todayISO(), slot);
-      router.push("/");
+      await deleteMeal(date, slot);
+      router.push(backHref);
     } catch (e) {
       setError(e instanceof Error ? e.message : "unknown error");
       setBusy(false);
@@ -83,9 +88,15 @@ function EditScreen({ slot }: { slot: Slot }) {
   if (meal === null) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6">
-        <p className="text-muted text-sm">{SLOT_LABEL[slot]}の記録はまだありません。</p>
-        <Link href={`/record/input/?slot=${slot}`} className="text-green-text text-sm underline">
-          記録する
+        <p className="text-muted text-sm">
+          {isToday ? "" : `${formatDateJP(date)}の`}
+          {SLOT_LABEL[slot]}の記録はありません。
+        </p>
+        <Link
+          href={isToday ? `/record/input/?slot=${slot}` : backHref}
+          className="text-green-text text-sm underline"
+        >
+          {isToday ? "記録する" : "記録簿へ戻る"}
         </Link>
       </div>
     );
@@ -99,7 +110,7 @@ function EditScreen({ slot }: { slot: Slot }) {
     <div className="flex flex-1 flex-col gap-4 px-[18px] pt-[22px] pb-10">
       <div className="flex items-center gap-3">
         <Link
-          href="/"
+          href={backHref}
           className="border-line bg-card text-ink flex h-11 w-11 flex-none items-center justify-center rounded-full border shadow-[0_2px_8px_rgba(23,21,15,0.06)]"
           aria-label="戻る"
         >
@@ -107,7 +118,9 @@ function EditScreen({ slot }: { slot: Slot }) {
         </Link>
         <div className="flex flex-col gap-0.5">
           <h1 className="text-[22px] font-black">{SLOT_LABEL[slot]}を編集</h1>
-          <p className="text-faint text-[11px]">名前とカロリーを直せます</p>
+          <p className="text-faint text-[11px]">
+            {isToday ? "名前とカロリーを直せます" : `${formatDateJP(date)}の記録`}
+          </p>
         </div>
       </div>
 
@@ -191,13 +204,15 @@ function EditScreen({ slot }: { slot: Slot }) {
           {busy ? "保存中..." : "保存する"}
         </button>
         <div className="flex gap-2.5">
-          <Link
-            href={`/record/input/?slot=${slot}`}
-            className="border-line bg-card flex min-h-[46px] flex-1 items-center justify-center gap-1.5 rounded-full border text-sm"
-          >
-            <Mic size={15} aria-hidden />
-            音声で言い直す
-          </Link>
+          {isToday && (
+            <Link
+              href={`/record/input/?slot=${slot}`}
+              className="border-line bg-card flex min-h-[46px] flex-1 items-center justify-center gap-1.5 rounded-full border text-sm"
+            >
+              <Mic size={15} aria-hidden />
+              音声で言い直す
+            </Link>
+          )}
           <button
             type="button"
             onClick={remove}
@@ -216,8 +231,10 @@ function EditScreen({ slot }: { slot: Slot }) {
 function EditPageInner() {
   const params = useSearchParams();
   const slotParam = params.get("slot");
+  const dateParam = params.get("date");
   const slot: Slot = isSlot(slotParam) ? slotParam : "dinner";
-  return <EditScreen slot={slot} />;
+  const date = isISODate(dateParam) ? dateParam : todayISO();
+  return <EditScreen slot={slot} date={date} />;
 }
 
 export default function EditPage() {
