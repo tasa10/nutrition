@@ -5,17 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/option"
 )
-
-const analyzeSystemPrompt = `あなたは日本の食事内容を栄養解析するアシスタントです。
-ユーザーの発話を料理・食材ごとに分解し、日本の一般的な外食・家庭料理の分量を前提にカロリーと栄養素を推定します。
-出力は次のJSONのみ。前後に説明文やコードフェンスを付けないこと。絵文字は使わないこと。
-{"items":[{"name":"料理名","detail":"分量の目安","kcal":数値,"protein":数値,"fat":数値,"carbs":数値,"salt":数値,"sugar":数値,"confidence":"high|mid|low"}],"advice":"ゲーム的で楽しく前向きな一言アドバイス(60字以内)"}
-単位: kcalはkcal、protein/fat/carbs/salt/sugarはグラム。`
 
 type Claude struct {
 	client anthropic.Client
@@ -29,81 +24,85 @@ func NewClaude(apiKey, model string) *Claude {
 	}
 }
 
-var analysisSchema = map[string]any{
-	"type":                 "object",
-	"additionalProperties": false,
-	"required":             []string{"items", "advice"},
-	"properties": map[string]any{
-		"advice": map[string]any{"type": "string"},
-		"items": map[string]any{
-			"type": "array",
-			"items": map[string]any{
-				"type":                 "object",
-				"additionalProperties": false,
-				"required":             []string{"name", "detail", "kcal", "protein", "fat", "carbs", "salt", "sugar", "confidence"},
-				"properties": map[string]any{
-					"name":       map[string]any{"type": "string"},
-					"detail":     map[string]any{"type": "string"},
-					"kcal":       map[string]any{"type": "number"},
-					"protein":    map[string]any{"type": "number"},
-					"fat":        map[string]any{"type": "number"},
-					"carbs":      map[string]any{"type": "number"},
-					"salt":       map[string]any{"type": "number"},
-					"sugar":      map[string]any{"type": "number"},
-					"confidence": map[string]any{"type": "string", "enum": []string{"high", "mid", "low"}},
-				},
-			},
-		},
-	},
+func (c *Claude) AnalyzeMeal(ctx context.Context, text string) (*Analysis, error) {
+	var out Analysis
+	msgs := []anthropic.MessageParam{anthropic.NewUserMessage(anthropic.NewTextBlock("発話:「" + text + "」"))}
+	if err := c.structured(ctx, analyzeSystemPrompt, msgs, analysisSchema, &out); err != nil {
+		return nil, err
+	}
+	return finishAnalysis(&out)
 }
 
-func (c *Claude) AnalyzeMeal(ctx context.Context, text string) (*Analysis, error) {
+func (c *Claude) SearchFoods(ctx context.Context, query string) ([]Item, error) {
+	var out searchResult
+	msgs := []anthropic.MessageParam{anthropic.NewUserMessage(anthropic.NewTextBlock("検索語:「" + query + "」"))}
+	if err := c.structured(ctx, searchSystemPrompt, msgs, searchSchema, &out); err != nil {
+		return nil, err
+	}
+	return finishSearch(out), nil
+}
+
+func (c *Claude) Chat(ctx context.Context, req ChatRequest) (*ChatReply, error) {
+	history := NormalizeHistory(req.Messages)
+	if len(history) == 0 || history[len(history)-1].Role != RoleUser {
+		return nil, errHistoryNotUser
+	}
+	msgs := make([]anthropic.MessageParam, 0, len(history))
+	for _, m := range history {
+		block := anthropic.NewTextBlock(m.Text)
+		if m.Role == RoleUser {
+			msgs = append(msgs, anthropic.NewUserMessage(block))
+		} else {
+			msgs = append(msgs, anthropic.NewAssistantMessage(block))
+		}
+	}
+
+	var out ChatReply
+	if err := c.structured(ctx, chatSystemPrompt(req.Day), msgs, chatSchema, &out); err != nil {
+		return nil, err
+	}
+	normalizeReply(&out)
+	return &out, nil
+}
+
+func (c *Claude) structured(ctx context.Context, system string, msgs []anthropic.MessageParam, schema map[string]any, out any) error {
 	resp, err := c.client.Messages.New(ctx, anthropic.MessageNewParams{
 		Model:     c.model,
-		MaxTokens: 2048,
-		System:    []anthropic.TextBlockParam{{Text: analyzeSystemPrompt}},
-		Messages: []anthropic.MessageParam{
-			anthropic.NewUserMessage(anthropic.NewTextBlock("発話:「" + text + "」")),
-		},
+		MaxTokens: 4096,
+		System:    []anthropic.TextBlockParam{{Text: system}},
+		Messages:  msgs,
 		OutputConfig: anthropic.OutputConfigParam{
-			Format: anthropic.JSONOutputFormatParam{Schema: analysisSchema},
+			Format: anthropic.JSONOutputFormatParam{Schema: schema},
 		},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("claude request: %w", err)
+		// The SDK already retries 429 / 5xx / 529 (overloaded) twice before returning.
+		var apiErr *anthropic.Error
+		if errors.As(err, &apiErr) {
+			switch {
+			case apiErr.StatusCode == http.StatusTooManyRequests:
+				return fmt.Errorf("claude: %w (%w)", ErrRateLimited, err)
+			case apiErr.StatusCode == 529 || isTransient(apiErr.StatusCode):
+				return fmt.Errorf("claude: %w (%w)", ErrUnavailable, err)
+			}
+		}
+		return fmt.Errorf("claude request: %w", err)
 	}
-	if resp.StopReason == anthropic.StopReasonRefusal {
-		return nil, errors.New("claude refused the request")
+	switch resp.StopReason {
+	case anthropic.StopReasonRefusal:
+		return errors.New("claude refused the request")
+	case anthropic.StopReasonMaxTokens:
+		return errors.New("claude response hit max_tokens")
 	}
 
-	var out strings.Builder
+	var text strings.Builder
 	for _, block := range resp.Content {
 		if tb, ok := block.AsAny().(anthropic.TextBlock); ok {
-			out.WriteString(tb.Text)
+			text.WriteString(tb.Text)
 		}
 	}
-	return parseAnalysis(out.String())
-}
-
-func parseAnalysis(raw string) (*Analysis, error) {
-	start := strings.Index(raw, "{")
-	end := strings.LastIndex(raw, "}")
-	if start < 0 || end <= start {
-		return nil, errors.New("no JSON object in response")
+	if err := json.Unmarshal([]byte(text.String()), out); err != nil {
+		return fmt.Errorf("parse claude response: %w", err)
 	}
-	var a Analysis
-	if err := json.Unmarshal([]byte(raw[start:end+1]), &a); err != nil {
-		return nil, fmt.Errorf("parse analysis: %w", err)
-	}
-	if len(a.Items) == 0 {
-		return nil, errors.New("analysis returned no items")
-	}
-	for i := range a.Items {
-		switch a.Items[i].Confidence {
-		case "high", "mid", "low":
-		default:
-			a.Items[i].Confidence = "mid"
-		}
-	}
-	return &a, nil
+	return nil
 }

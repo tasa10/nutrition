@@ -26,6 +26,14 @@ export function isSlot(v: string | null | undefined): v is Slot {
   return !!v && (SLOTS as string[]).includes(v);
 }
 
+export function slotForNow(): Slot {
+  const h = new Date().getHours();
+  if (h < 10) return "breakfast";
+  if (h < 15) return "lunch";
+  if (h < 17) return "snack";
+  return "dinner";
+}
+
 export type Confidence = "high" | "mid" | "low";
 
 export type MealItem = {
@@ -40,11 +48,26 @@ export type MealItem = {
   confidence: Confidence;
 };
 
+export function blankItem(): MealItem {
+  return {
+    name: "",
+    detail: "",
+    kcal: 0,
+    protein: 0,
+    fat: 0,
+    carbs: 0,
+    salt: 0,
+    sugar: 0,
+    confidence: "mid",
+  };
+}
+
 export type Meal = {
   id: number;
   date: string;
   slot: Slot;
   source: string;
+  photo?: string;
   recorded_at: string;
   items: MealItem[];
 };
@@ -77,9 +100,29 @@ export type Analysis = {
   advice: string;
 };
 
+export type Badge = { key: string; label: string; earned: boolean };
+
+export type Stats = {
+  xp: number;
+  level: number;
+  xp_in_level: number;
+  streak: number;
+  today_meals: number;
+  badges: Badge[];
+};
+
+export type HistoryDay = { date: string; kcal: number; meals: number };
+export type History = { target_kcal: number; days: HistoryDay[] };
+
+export type ChatRole = "user" | "assistant";
+export type ChatMessage = { role: ChatRole; text: string };
+export type RecordProposal = { name: string; kcal: number; slot: Slot; items: MealItem[] };
+export type ChatReply = { reply: string; record: RecordProposal | null };
+
 export const SOURCE_LABEL: Record<string, string> = {
   voice: "音声入力",
   text: "テキスト入力",
+  chat: "チャット相談",
   edited: "編集済み",
   manual: "手動追加",
 };
@@ -119,6 +162,37 @@ export const putProfile = (body: {
 
 export const getDay = (date: string) => fetchJson<Day>(`/api/days/${date}`);
 export const analyzeMeal = (text: string) => postJson<Analysis>("/api/meals/analyze", { text });
-export const upsertMeal = (date: string, slot: Slot, source: string, items: MealItem[]) =>
-  putJson<Meal>(`/api/meals/${date}/${slot}`, { source, items });
+
+// photo: undefined keeps the stored photo, "" removes it, a data URL replaces it.
+export const upsertMeal = (
+  date: string,
+  slot: Slot,
+  source: string,
+  items: MealItem[],
+  photo?: string,
+) =>
+  putJson<Meal>(
+    `/api/meals/${date}/${slot}`,
+    photo === undefined ? { source, items } : { source, items, photo },
+  );
+
 export const deleteMeal = (date: string, slot: Slot) => deleteJson(`/api/meals/${date}/${slot}`);
+
+// Adds items to whatever is already recorded for the slot instead of replacing it.
+export async function appendToMeal(date: string, slot: Slot, source: string, items: MealItem[]) {
+  const day = await getDay(date);
+  const current = day.meals.find((m) => m.slot === slot);
+  return upsertMeal(date, slot, source, [...(current?.items ?? []), ...items]);
+}
+
+export const getStats = (date: string) => fetchJson<Stats>(`/api/stats?date=${date}`);
+export const getHistory = (to: string, days: number) =>
+  fetchJson<History>(`/api/history?to=${to}&days=${days}`);
+
+export const sendChat = (date: string, messages: ChatMessage[]) =>
+  postJson<ChatReply>("/api/chat", { date, messages });
+
+export const searchFoods = (query: string) =>
+  postJson<{ items: MealItem[] }>("/api/foods/search", { query }).then((r) => r.items);
+export const getFrequentFoods = () =>
+  fetchJson<{ items: MealItem[] }>("/api/foods/frequent").then((r) => r.items);

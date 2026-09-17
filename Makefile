@@ -3,9 +3,20 @@
 
 COMPOSE := docker compose
 
+# On Windows, GNU make runs recipes with cmd.exe when no sh.exe is on PATH (e.g. from PowerShell);
+# it then reports SHELL as a bare "sh.exe". The few shell-specific recipes get a cmd.exe variant.
+ifeq ($(SHELL),sh.exe)
+ENV_INIT := if not exist .env copy .env.example .env >NUL
+DB_SH    := $(COMPOSE) exec db sh -c "psql -U $$POSTGRES_USER -d $$POSTGRES_DB"
+else
+ENV_INIT := test -f .env || cp .env.example .env
+DB_SH    := $(COMPOSE) exec db sh -c 'psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"'
+endif
+
 # Lint / format run inside official images so no local Go or Node is needed.
 GO_IMAGE       := golang:1.27-alpine
-GOLANGCI_IMAGE := golangci/golangci-lint:latest
+# Keep in sync with the version in .github/workflows/lint.yml.
+GOLANGCI_IMAGE := golangci/golangci-lint:v2.13.2
 NODE_IMAGE     := node:24-alpine
 GO_RUN   := docker run --rm -v "$(CURDIR)/backend:/app" -v nutrition_gomodcache:/go/pkg/mod -w /app
 NODE_RUN := docker run --rm -v "$(CURDIR)/frontend:/app" -w /app $(NODE_IMAGE)
@@ -29,7 +40,7 @@ fmt-front: ## prettier --write
 	$(NODE_RUN) npm run format
 
 env: ## .env が無ければ .env.example からコピー
-	@test -f .env || cp .env.example .env
+	@$(ENV_INIT)
 
 up: env ## フォアグラウンドでビルド＆起動
 	$(COMPOSE) up --build
@@ -61,7 +72,7 @@ frontend-sh: ## frontendコンテナにシェルで入る
 	$(COMPOSE) exec frontend sh
 
 db-sh: ## dbコンテナにpsqlで入る
-	$(COMPOSE) exec db sh -c 'psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"'
+	$(DB_SH)
 
 clean: down-v ## ボリューム削除＋ローカルビルドイメージも削除
 	$(COMPOSE) down --rmi local

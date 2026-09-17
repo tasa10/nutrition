@@ -11,13 +11,16 @@ const (
 
 var Slots = []string{SlotBreakfast, SlotLunch, SlotDinner, SlotSnack}
 
+var SlotLabels = map[string]string{
+	SlotBreakfast: "朝食",
+	SlotLunch:     "昼食",
+	SlotDinner:    "夕食",
+	SlotSnack:     "間食",
+}
+
 func IsValidSlot(s string) bool {
-	for _, v := range Slots {
-		if v == s {
-			return true
-		}
-	}
-	return false
+	_, ok := SlotLabels[s]
+	return ok
 }
 
 const (
@@ -25,6 +28,9 @@ const (
 	ConfidenceMid  = "mid"
 	ConfidenceLow  = "low"
 )
+
+// SourceManual marks items added by hand from search; it earns less XP than voice/chat records.
+const SourceManual = "manual"
 
 // Meal is one eating occasion: a single slot on a single day for one user.
 // Nutrient values live on the items, as estimated by the AI at record time.
@@ -35,6 +41,7 @@ type Meal struct {
 	Date       string     `gorm:"size:10;not null;uniqueIndex:idx_meals_user_date_slot" json:"date"`
 	Slot       string     `gorm:"size:16;not null;uniqueIndex:idx_meals_user_date_slot" json:"slot"`
 	Source     string     `gorm:"size:32;not null" json:"source"`
+	Photo      string     `gorm:"type:text" json:"photo,omitempty"`
 	RecordedAt time.Time  `json:"recorded_at"`
 	Items      []MealItem `gorm:"constraint:OnDelete:CASCADE" json:"items"`
 	CreatedAt  time.Time  `json:"created_at"`

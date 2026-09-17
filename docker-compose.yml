@@ -27,7 +27,7 @@ services:
       DEV_USER_ID: ${DEV_USER_ID:-1}
       AI_PROVIDER: ${AI_PROVIDER:-}
       AI_API_KEY: ${AI_API_KEY:-}
-      AI_MODEL: ${AI_MODEL:-claude-opus-5}
+      AI_MODEL: ${AI_MODEL:-}
     ports:
       - "8080:8080"
     depends_on:

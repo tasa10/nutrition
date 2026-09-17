@@ -63,6 +63,17 @@ make lint-front  # フロントエンドのみ
 - バックエンド: `backend/.golangci.yml`（golangci-lint v2、標準セット + misspell / unconvert / unparam / gocritic / revive）
 - フロントエンド: `frontend/eslint.config.mjs`（eslint-config-next + eslint-config-prettier）、`frontend/.prettierrc`（`prettier-plugin-tailwindcss` でクラス順も整列）
 
+### CI（GitHub Actions）
+
+`.github/workflows/lint.yml` が `main` への push と全 Pull Request で lint を実行する。
+
+| ジョブ | 内容 |
+| --- | --- |
+| Backend | `go vet` → golangci-lint（gofmt / goimports のチェックを含む） |
+| Frontend | `npm ci` → `next typegen` + `tsc --noEmit` → ESLint → Prettier チェック |
+
+golangci-lint のバージョンは CI と `Makefile`（`GOLANGCI_IMAGE`）で `v2.13.2` に揃えている。上げるときは両方を変更する。フロントの型チェックはローカルの `make lint-front` には含まれないので、手元で確認するなら `npx next typegen && npx tsc --noEmit` を実行する。
+
 - フロントエンド: http://localhost:3000
 - バックエンドAPI: http://localhost:8080/api/health
 - PostgreSQL: localhost:5432
@@ -81,10 +92,13 @@ Claude Design で作成したモック `docs/mock/calorie-app-mock.dc.html`（�
 | `/` | ホーム（残りkcalリング / PFC / 塩分・糖質 / 今日の4食） | 実装済み |
 | `/record/` | 区分えらび（朝食・昼食・夕食・間食） | 実装済み |
 | `/record/input/?slot=` | 音声入力（Web Speech API、非対応時はテキスト） | 実装済み |
-| `/record/review/` | AI解析の確認（品目ごとの確度・削除 → 保存） | 実装済み |
+| `/record/review/` | AI解析の確認（品目ごとの確度・削除・写真添付 → 保存） | 実装済み |
+| `/record/search/?slot=` | 食品検索（AIが候補を生成）/ よく食べるもの → 区分に追加 | 実装済み |
 | `/meals/edit/?slot=` | 記録の編集・削除 | 実装済み |
-| — | チャット相談 / 記録簿（週次） / 食品検索 / バッジ / 写真 | 未実装 |
-| `/foods/`, `/foods/new/` | 食品マスタ（旧スケルトン、当面温存） | 実装済み |
+| `/chat/` | AIコーチとのチャット相談。食べたものを報告すると記録カードを提案 | 実装済み |
+| `/history/` | 記録簿（直近7日のグラフ / 実績バッジ / 今日の内訳） | 実装済み |
+
+ヘッダーの Lv / XP / デイリークエスト / 連続日数は `GET /api/stats` から表示する。XP は記録から毎回計算する（音声・テキスト・チャットの記録 1 件 = 20XP、食品検索からの追加 = 10XP、100XP ごとに Lv+1）。チャット履歴はブラウザのタブ単位（sessionStorage）で保持し、サーバーには保存しない。チャットと食品検索からの記録は、その区分の既存の記録に品目を追加する（音声入力の確認画面からの保存は置き換え）。
 
 ## API
 
@@ -95,11 +109,15 @@ Claude Design で作成したモック `docs/mock/calorie-app-mock.dc.html`（�
 | GET / PUT | `/api/profile` | プロフィール（`weight_now` / `weight_goal` / `activity_level` 0-2）と `target_kcal` |
 | POST | `/api/meals/analyze` | `{text}` → `{items[], advice}`（AIが料理ごとに栄養推定） |
 | GET | `/api/days/{YYYY-MM-DD}` | その日の `target_kcal` / `totals` / `meals[]` |
-| PUT | `/api/meals/{date}/{slot}` | 食事を保存（同じ日・区分は置き換え）。`slot` は `breakfast|lunch|dinner|snack` |
+| PUT | `/api/meals/{date}/{slot}` | 食事を保存（同じ日・区分は置き換え）。`slot` は `breakfast|lunch|dinner|snack`。`photo` は省略で現状維持、`""` で削除、data URL（JPEG/PNG/WebP, 700KB以下）で設定 |
 | DELETE | `/api/meals/{date}/{slot}` | 食事を削除 |
-| GET / POST | `/api/foods` | 食品マスタ（旧） |
+| POST | `/api/chat` | `{date, messages[{role, text}]}` → `{reply, record}`。`record` は記録の提案（無ければ `null`） |
+| GET | `/api/stats?date=` | `xp` / `level` / `xp_in_level` / `streak` / `today_meals` / `badges[]` |
+| GET | `/api/history?to=&days=` | 直近 N 日（1〜31、既定7）の日別 kcal と `target_kcal` |
+| POST | `/api/foods/search` | `{query}` → `{items[]}`（AIが候補を4件生成） |
+| GET | `/api/foods/frequent` | よく記録している品目（最大6件） |
 
-起動時に GORM の AutoMigrate でテーブル（`profiles` / `meals` / `meal_items` / `foods`）を作成する（`backend/internal/db/migrate.go`）。
+起動時に GORM の AutoMigrate でテーブル（`users` / `profiles` / `meals` / `meal_items`）を作成する（`backend/internal/db/migrate.go`）。食品マスタは持たず、カロリー・栄養素は AI の推定値を `meal_items` に直接保存する（初期の `foods` テーブルは起動時に削除する）。
 
 ## 認証（現在は開発用の自動ログイン）
 
@@ -115,15 +133,31 @@ Firebase Auth を入れるときは `internal/auth` に `Authenticator` の Fire
 
 ## AI プロバイダー
 
-`backend/internal/ai/` に `Analyzer` インターフェースがあり、環境変数で切り替える。
+`backend/internal/ai/` に `Service` インターフェース（`AnalyzeMeal` / `Chat` / `SearchFoods`）があり、環境変数で切り替える。プロンプトと JSON スキーマは `prompts.go` に共通化しており、Claude（Structured Outputs）・Gemini（`responseJsonSchema`）ともに同じスキーマで応答を強制している。
 
 | 変数 | 値 |
 | --- | --- |
-| `AI_PROVIDER` | `claude` / `stub`。空なら `AI_API_KEY` があれば `claude`、無ければ `stub` |
+| `AI_PROVIDER` | `claude` / `gemini` / `stub`。空ならキーの先頭から自動判定（`sk-ant-` → claude、`AIza` → gemini）、キーが無ければ `stub` |
 | `AI_API_KEY` | プロバイダーのAPIキー（Goバックエンドのみが保持。ブラウザには渡さない） |
-| `AI_MODEL` | 既定 `claude-opus-5` |
+| `AI_MODEL` | 空ならプロバイダーごとの既定（claude: `claude-opus-5` / gemini: `gemini-3.6-flash`） |
 
-`stub` は固定値を返すのでキー無しでも画面の動作確認ができる。別プロバイダー（Gemini 等）を足す場合は `Analyzer` を実装して `cmd/api/main.go` の `newAnalyzer` に分岐を追加する。
+### Gemini（無料枠）で使う
+
+Google AI Studio で発行したキーを `.env` に入れて backend を再起動する（`make restart`）。ログに `using Gemini AI` と出れば有効。
+
+```
+AI_PROVIDER=gemini
+AI_API_KEY=...
+```
+
+- キーは形式が変わることがある（`AIza...` 以外に `AQ.` で始まるものもある）ので、自動判定に頼らず `AI_PROVIDER=gemini` を明示する
+- 旧モデル（`gemini-2.5-flash` など）は新規ユーザーには提供されず 404 になる。混雑時はモデルが 503（high demand）を返すことがあり、その場合は時間をおくか `AI_MODEL` を別の Flash モデルに変える
+
+- 無料枠は1分あたり10回程度の上限があり、超えると API は **429**（「AIの利用上限に達しました…」）を返す。しばらく待てば復帰する
+- **無料枠の入出力は Google のサービス改善に使われる場合がある**。体重や食事の記録を送るので、本番公開前に有料枠への切り替えやプロバイダーを再検討する
+- 使えるモデルと上限は変わるので、AI Studio のレート制限画面で確認し、必要なら `AI_MODEL` で指定する
+
+`stub` は固定値を返すのでキー無しでも画面の動作確認ができる。別プロバイダーを足す場合は `Service` を実装して `cmd/api/main.go` の `newAIService` に分岐を追加する。AI 側が 429 を返したときは `ai.ErrRateLimited` を包んで返すと、ハンドラが 429 に変換する。チャット履歴の整形（先頭の assistant 発言を除く・同じ話者の連続発言をまとめる）は `ai.NormalizeHistory` を共通で使える。
 
 ## 実装方針・決定事項メモ
 

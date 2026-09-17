@@ -57,14 +57,14 @@ export default function HomePage() {
 
   if (state.phase === "loading") {
     return (
-      <AppShell mealsRecorded={0}>
+      <AppShell>
         <p className="text-faint p-6">読み込み中...</p>
       </AppShell>
     );
   }
   if (state.phase === "error") {
     return (
-      <AppShell mealsRecorded={0}>
+      <AppShell>
         <p className="text-rose-text p-6">
           データを取得できませんでした（{state.message}
           ）。バックエンドが起動しているか確認してください。
@@ -87,7 +87,7 @@ export default function HomePage() {
   ];
 
   return (
-    <AppShell mealsRecorded={day.meals.length}>
+    <AppShell>
       <main className="flex flex-1 flex-col gap-4 px-[18px] pt-[18px] pb-[120px]">
         <section className="bg-card flex items-center gap-5 rounded-[28px] p-6 shadow-[0_2px_12px_rgba(23,21,15,0.05)]">
           <div
@@ -182,6 +182,12 @@ export default function HomePage() {
                       : "タップして音声入力"}
                   </div>
                 </div>
+                {m?.photo && (
+                  <div
+                    className="h-11 w-11 flex-none rounded-xl bg-cover bg-center"
+                    style={{ backgroundImage: `url(${m.photo})` }}
+                  />
+                )}
                 {m ? (
                   <div className="font-mono text-[15px]">{nf(mealKcal(m))}</div>
                 ) : (
@@ -202,12 +208,12 @@ export default function HomePage() {
             <span className="inline-block h-[13px] w-[9px] rounded-full bg-white" />
             音声で記録
           </Link>
-          <div
-            className="border-line bg-card flex min-h-[52px] flex-1 cursor-not-allowed items-center justify-center rounded-full border text-[15px] font-bold opacity-50"
-            title="準備中"
+          <Link
+            href="/chat/"
+            className="border-line bg-card flex min-h-[52px] flex-1 items-center justify-center rounded-full border text-[15px] font-bold"
           >
             AIに相談
-          </div>
+          </Link>
         </div>
       </main>
     </AppShell>

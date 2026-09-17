@@ -47,7 +47,7 @@ func run() error {
 		return fmt.Errorf("migrate database: %w", err)
 	}
 
-	analyzer := newAnalyzer(cfg)
+	aiService := newAIService(context.Background(), cfg)
 	authenticator, err := newAuthenticator(cfg, gormDB)
 	if err != nil {
 		return err
@@ -67,19 +67,25 @@ func run() error {
 	api := e.Group("/api", auth.Middleware(authenticator))
 	api.GET("/me", handler.Me)
 
-	foodHandler := handler.NewFoodHandler(gormDB)
-	api.GET("/foods", foodHandler.List)
-	api.POST("/foods", foodHandler.Create)
+	foodHandler := handler.NewFoodHandler(gormDB, aiService)
+	api.POST("/foods/search", foodHandler.Search)
+	api.GET("/foods/frequent", foodHandler.Frequent)
 
 	profileHandler := handler.NewProfileHandler(gormDB)
 	api.GET("/profile", profileHandler.Get)
 	api.PUT("/profile", profileHandler.Put)
 
-	mealHandler := handler.NewMealHandler(gormDB, analyzer)
+	mealHandler := handler.NewMealHandler(gormDB, aiService)
 	api.POST("/meals/analyze", mealHandler.Analyze)
 	api.GET("/days/:date", mealHandler.GetDay)
 	api.PUT("/meals/:date/:slot", mealHandler.Upsert)
 	api.DELETE("/meals/:date/:slot", mealHandler.Delete)
+
+	api.POST("/chat", handler.NewChatHandler(gormDB, aiService).Post)
+
+	statsHandler := handler.NewStatsHandler(gormDB)
+	api.GET("/stats", statsHandler.Get)
+	api.GET("/history", statsHandler.History)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -92,20 +98,29 @@ func run() error {
 	return nil
 }
 
-func newAnalyzer(cfg config.Config) ai.Analyzer {
+func newAIService(ctx context.Context, cfg config.Config) ai.Service {
 	switch cfg.AIProvider {
-	case "claude":
+	case config.AIProviderClaude, config.AIProviderGemini:
 		if cfg.AIAPIKey == "" {
-			slog.Warn("AI_PROVIDER=claude but AI_API_KEY is empty; falling back to stub analyzer")
+			slog.Warn("AI_API_KEY is empty; falling back to stub AI", "provider", cfg.AIProvider)
 			return ai.Stub{}
 		}
-		slog.Info("using Claude analyzer", "model", cfg.AIModel)
-		return ai.NewClaude(cfg.AIAPIKey, cfg.AIModel)
-	case "stub":
-		slog.Info("using stub analyzer (set AI_API_KEY to enable real analysis)")
+		if cfg.AIProvider == config.AIProviderClaude {
+			slog.Info("using Claude AI", "model", cfg.AIModel)
+			return ai.NewClaude(cfg.AIAPIKey, cfg.AIModel)
+		}
+		g, err := ai.NewGemini(ctx, cfg.AIAPIKey, cfg.AIModel)
+		if err != nil {
+			slog.Warn("failed to initialize Gemini; falling back to stub AI", "error", err)
+			return ai.Stub{}
+		}
+		slog.Info("using Gemini AI", "model", cfg.AIModel)
+		return g
+	case config.AIProviderStub:
+		slog.Info("using stub AI (set AI_API_KEY to enable real analysis)")
 		return ai.Stub{}
 	default:
-		slog.Warn("unknown AI_PROVIDER; falling back to stub analyzer", "provider", cfg.AIProvider)
+		slog.Warn("unknown AI_PROVIDER; falling back to stub AI", "provider", cfg.AIProvider)
 		return ai.Stub{}
 	}
 }

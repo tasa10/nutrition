@@ -23,22 +23,14 @@ export default function RecordPage() {
       .then((d) => {
         if (!cancelled) setDay(d);
       })
-      .catch(() => {
-        if (!cancelled)
-          setDay({
-            date: todayISO(),
-            target_kcal: 0,
-            totals: { kcal: 0, protein: 0, fat: 0, carbs: 0, salt: 0, sugar: 0 },
-            meals: [],
-          });
-      });
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
   }, []);
 
   return (
-    <AppShell mealsRecorded={day?.meals.length ?? 0}>
+    <AppShell>
       <main className="flex flex-1 flex-col gap-5 px-[18px] pt-[22px] pb-[120px]">
         <div className="flex flex-col gap-1.5">
           <h1 className="text-[25px] font-black">なに食べた？</h1>
@@ -72,12 +64,12 @@ export default function RecordPage() {
           <p className="text-muted text-xs leading-[1.7]">
             よく食べるものはお気に入りからワンタップ。
           </p>
-          <div
-            className="border-line flex min-h-11 cursor-not-allowed items-center self-start rounded-full border px-5 text-[13px] font-medium opacity-50"
-            title="準備中"
+          <Link
+            href="/record/search/"
+            className="border-line flex min-h-11 items-center self-start rounded-full border px-5 text-[13px] font-medium"
           >
             食品を検索
-          </div>
+          </Link>
         </div>
       </main>
     </AppShell>
