@@ -30,10 +30,11 @@ type Config struct {
 	// AIModel defaults per provider when empty.
 	AIModel string
 
-	// AuthMode selects how requests are authenticated: "dev" (fixed user) for now,
-	// "firebase" once Firebase Auth is wired in.
-	AuthMode  string
-	DevUserID uint
+	// AuthMode selects how requests are authenticated: "dev" (fixed DevUserID, no credentials)
+	// or "firebase" (ID token verified against FirebaseProjectID).
+	AuthMode          string
+	DevUserID         uint
+	FirebaseProjectID string
 }
 
 func Load() Config {
@@ -46,6 +47,8 @@ func Load() Config {
 		AIModel:     strings.TrimSpace(os.Getenv("AI_MODEL")),
 		AuthMode:    getEnv("AUTH_MODE", "dev"),
 		DevUserID:   getEnvUint("DEV_USER_ID", 1),
+
+		FirebaseProjectID: strings.TrimSpace(os.Getenv("FIREBASE_PROJECT_ID")),
 	}
 	if cfg.AIProvider == "" {
 		cfg.AIProvider = inferAIProvider(cfg.AIAPIKey)

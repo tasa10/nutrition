@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import AccountSection from "@/components/AccountSection";
 import AppShell from "@/components/AppShell";
 import {
   type Day,
@@ -51,6 +52,7 @@ export default function HistoryPage() {
           <p className="text-rose-text">データを取得できませんでした（{state.message}）</p>
         )}
         {state.phase === "ready" && <HistoryBody {...state} />}
+        <AccountSection />
       </main>
     </AppShell>
   );

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { DM_Mono, Noto_Sans_JP } from "next/font/google";
+import AuthGate from "@/components/AuthGate";
 import "./globals.css";
 
 const notoSansJP = Noto_Sans_JP({
@@ -31,7 +32,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body>
         <div className="flex min-h-dvh justify-center">
           <div className="bg-paper flex min-h-dvh w-full max-w-[440px] flex-col shadow-[0_0_60px_rgba(23,21,15,0.12)]">
-            {children}
+            <AuthGate>{children}</AuthGate>
           </div>
         </div>
       </body>

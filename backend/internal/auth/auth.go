@@ -1,8 +1,8 @@
 // Package auth resolves the current user for a request.
 //
-// Today only Dev exists: it signs every request in as a fixed user row. When Firebase Auth
-// lands, add a Firebase authenticator that verifies the ID token from the Authorization
-// header and looks up (or creates) the user by firebase_uid; the handlers stay unchanged.
+// Dev signs every request in as a fixed user row (local development). Firebase verifies the
+// ID token from the Authorization header and maps it to a user row by firebase_uid.
+// Handlers only ever call CurrentUser / UserID and don't know which one is active.
 package auth
 
 import (
@@ -16,6 +16,9 @@ import (
 )
 
 const contextKey = "auth.user"
+
+// ErrUnauthorized means the request carried no usable credentials.
+var ErrUnauthorized = errors.New("unauthorized")
 
 type Authenticator interface {
 	Authenticate(c *echo.Context) (*model.User, error)
@@ -40,7 +43,7 @@ func Middleware(a Authenticator) echo.MiddlewareFunc {
 		return func(c *echo.Context) error {
 			u, err := a.Authenticate(c)
 			if err != nil {
-				if errors.Is(err, gorm.ErrRecordNotFound) {
+				if errors.Is(err, ErrUnauthorized) || errors.Is(err, gorm.ErrRecordNotFound) {
 					return echo.NewHTTPError(http.StatusUnauthorized, "unauthorized")
 				}
 				return echo.NewHTTPError(http.StatusInternalServerError, "authentication failed")

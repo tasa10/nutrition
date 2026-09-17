@@ -122,17 +122,32 @@ Claude Design で作成したモック `docs/mock/calorie-app-mock.dc.html`（�
 
 起動時に GORM の AutoMigrate でテーブル（`users` / `profiles` / `meals` / `meal_items` / `chat_messages`）を作成する（`backend/internal/db/migrate.go`）。食品マスタは持たず、カロリー・栄養素は AI の推定値を `meal_items` に直接保存する（初期の `foods` テーブルは起動時に削除する）。
 
-## 認証（現在は開発用の自動ログイン）
+## 認証
 
-`users` テーブル（`id` / `firebase_uid` / `display_name`）を持ち、`profiles` と `meals` は `user_id` でユーザーごとに分かれている。
+`users` テーブル（`id` / `firebase_uid` / `display_name`）を持ち、`profiles` / `meals` / `chat_messages` は `user_id` でユーザーごとに分かれている。
 `/api/health` 以外の API は `auth.Middleware` を通り、ハンドラは `auth.UserID(c)` で現在のユーザーを取得する。
 
 | 変数 | 値 |
 | --- | --- |
-| `AUTH_MODE` | `dev`（既定）: 全リクエストを `DEV_USER_ID` のユーザーとして扱う。起動時に ID 1 の開発ユーザー（`firebase_uid = dev-user-1`）を自動作成 |
+| `AUTH_MODE` | `dev`（既定）: ログイン画面なしで全リクエストを `DEV_USER_ID` のユーザーとして扱う。起動時に ID 1 の開発ユーザー（`firebase_uid = dev-user-1`）を自動作成。`firebase`: Firebase Auth の ID トークンを検証 |
 | `DEV_USER_ID` | 既定 `1` |
+| `FIREBASE_PROJECT_ID` | `firebase` モードで必須。トークン検証は Google の公開鍵で行うので、サービスアカウントの鍵は不要 |
+| `NEXT_PUBLIC_FIREBASE_API_KEY` / `_AUTH_DOMAIN` / `_PROJECT_ID` / `_APP_ID` | Firebase コンソールの Web アプリ設定の値。ビルド時にフロントへ埋め込まれ、4つそろうとログイン画面が有効になる（空なら開発モード） |
 
-Firebase Auth を入れるときは `internal/auth` に `Authenticator` の Firebase 実装（`Authorization: Bearer <IDトークン>` を検証 → `firebase_uid` でユーザーを検索／作成）を足し、`cmd/api/main.go` の `newAuthenticator` に `firebase` の分岐を追加する。ハンドラ側の変更は不要。フロントは `src/lib/api.ts` の `request` で `Authorization` ヘッダーを付ける。CORS は `Authorization` ヘッダーを許可済み。
+### Firebase モードでの流れ
+
+1. フロント: `AuthGate`（`src/components/AuthGate.tsx`）が全ページを包み、未ログインなら `/login/` へ。`/login/` では Google ログインと メールアドレス+パスワード（新規登録・パスワード再設定つき）が使える
+2. フロント: `src/lib/api.ts` が毎回 Firebase の ID トークンを `Authorization: Bearer` で送る。401 が返ればログイン画面へ戻す
+3. バックエンド: `internal/auth/firebase.go` がトークンを検証し、`firebase_uid` でユーザーを検索。無ければその場で作成（表示名はトークンの `name` → `email` の順）
+4. ログアウトは記録簿画面の下にある「アカウント」欄から
+
+開発ユーザー（ID 1）のデータは Firebase のアカウントには引き継がない。メールアドレス登録のメール確認は強制していない。
+
+### Firebase コンソールでの準備
+
+1. プロジェクトを作成 → **Authentication → Sign-in method** で **Google** と **メール / パスワード** を有効化
+2. **プロジェクトの設定 → マイアプリ → ウェブアプリを追加** で `apiKey` / `authDomain` / `projectId` / `appId` を取得し、`.env` の `NEXT_PUBLIC_FIREBASE_*` と `FIREBASE_PROJECT_ID` に入れる
+3. `AUTH_MODE=firebase` にして `make up-d`（フロントはビルドし直しが必要）。**Authentication → Settings → 承認済みドメイン** に `localhost` が入っていることを確認（既定で入っている）
 
 ## AI プロバイダー
 
