@@ -134,7 +134,17 @@ func newAuthenticator(cfg config.Config, gormDB *gorm.DB) (auth.Authenticator, e
 	case "dev":
 		slog.Warn("AUTH_MODE=dev: every request is signed in as a fixed user", "user_id", cfg.DevUserID)
 		return auth.Dev{DB: gormDB, UserID: cfg.DevUserID}, nil
+	case "firebase":
+		if cfg.FirebaseProjectID == "" {
+			return nil, errors.New("AUTH_MODE=firebase requires FIREBASE_PROJECT_ID")
+		}
+		fb, err := auth.NewFirebase(context.Background(), gormDB, cfg.FirebaseProjectID)
+		if err != nil {
+			return nil, err
+		}
+		slog.Info("using Firebase Auth", "project", cfg.FirebaseProjectID)
+		return fb, nil
 	default:
-		return nil, fmt.Errorf("unsupported AUTH_MODE %q (only \"dev\" is implemented)", cfg.AuthMode)
+		return nil, fmt.Errorf("unsupported AUTH_MODE %q (use \"dev\" or \"firebase\")", cfg.AuthMode)
 	}
 }

@@ -1,3 +1,5 @@
+import { authEnabled, getIdToken } from "./firebase";
+
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
 export class ApiError extends Error {
@@ -18,18 +20,28 @@ async function handleResponse<T>(res: Response): Promise<T> {
     } catch {
       // レスポンスがJSONでない場合はステータスのみ
     }
+    if (res.status === 401 && authEnabled && !window.location.pathname.startsWith("/login")) {
+      // The session is gone (signed out elsewhere, token rejected): go back to the login screen.
+      window.location.assign(new URL("/login/", window.location.origin).toString());
+    }
     throw new ApiError(res.status, message);
   }
   if (res.status === 204) return undefined as T;
   return res.json();
 }
 
-function request<T>(method: string, path: string, body?: unknown): Promise<T> {
-  return fetch(`${API_BASE_URL}${path}`, {
+async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const headers: Record<string, string> = {};
+  if (body !== undefined) headers["Content-Type"] = "application/json";
+  const token = await getIdToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const res = await fetch(`${API_BASE_URL}${path}`, {
     method,
-    headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+    headers,
     body: body === undefined ? undefined : JSON.stringify(body),
-  }).then((res) => handleResponse<T>(res));
+  });
+  return handleResponse<T>(res);
 }
 
 export const fetchJson = <T>(path: string) => request<T>("GET", path);
