@@ -115,9 +115,9 @@ export type HistoryDay = { date: string; kcal: number; meals: number };
 export type History = { target_kcal: number; days: HistoryDay[] };
 
 export type ChatRole = "user" | "assistant";
-export type ChatMessage = { role: ChatRole; text: string };
+export type ChatMessage = { id: number; role: ChatRole; text: string; created_at: string };
 export type RecordProposal = { name: string; kcal: number; slot: Slot; items: MealItem[] };
-export type ChatReply = { reply: string; record: RecordProposal | null };
+export type ChatReply = { reply: string; record: RecordProposal | null; messages: ChatMessage[] };
 
 export const SOURCE_LABEL: Record<string, string> = {
   voice: "音声入力",
@@ -189,8 +189,12 @@ export const getStats = (date: string) => fetchJson<Stats>(`/api/stats?date=${da
 export const getHistory = (to: string, days: number) =>
   fetchJson<History>(`/api/history?to=${to}&days=${days}`);
 
-export const sendChat = (date: string, messages: ChatMessage[]) =>
-  postJson<ChatReply>("/api/chat", { date, messages });
+export const getChat = () =>
+  fetchJson<{ messages: ChatMessage[] }>("/api/chat").then((r) => r.messages);
+export const sendChat = (date: string, text: string) =>
+  postJson<ChatReply>("/api/chat", { date, text });
+export const postChatNote = (text: string) => postJson<ChatMessage>("/api/chat/notes", { text });
+export const clearChat = () => deleteJson("/api/chat");
 
 export const searchFoods = (query: string) =>
   postJson<{ items: MealItem[] }>("/api/foods/search", { query }).then((r) => r.items);

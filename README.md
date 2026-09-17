@@ -98,7 +98,7 @@ Claude Design で作成したモック `docs/mock/calorie-app-mock.dc.html`（�
 | `/chat/` | AIコーチとのチャット相談。食べたものを報告すると記録カードを提案 | 実装済み |
 | `/history/` | 記録簿（直近7日のグラフ / 実績バッジ / 今日の内訳） | 実装済み |
 
-ヘッダーの Lv / XP / デイリークエスト / 連続日数は `GET /api/stats` から表示する。XP は記録から毎回計算する（音声・テキスト・チャットの記録 1 件 = 20XP、食品検索からの追加 = 10XP、100XP ごとに Lv+1）。チャット履歴はブラウザのタブ単位（sessionStorage）で保持し、サーバーには保存しない。チャットと食品検索からの記録は、その区分の既存の記録に品目を追加する（音声入力の確認画面からの保存は置き換え）。
+ヘッダーの Lv / XP / デイリークエスト / 連続日数は `GET /api/stats` から表示する。XP は記録から毎回計算する（音声・テキスト・チャットの記録 1 件 = 20XP、食品検索からの追加 = 10XP、100XP ごとに Lv+1）。チャット履歴はユーザーごとに `chat_messages` テーブルへ保存する（1ユーザー1会話。AI 呼び出しに失敗したときはその発言を保存しない）。チャットと食品検索からの記録は、その区分の既存の記録に品目を追加する（音声入力の確認画面からの保存は置き換え）。
 
 ## API
 
@@ -111,13 +111,16 @@ Claude Design で作成したモック `docs/mock/calorie-app-mock.dc.html`（�
 | GET | `/api/days/{YYYY-MM-DD}` | その日の `target_kcal` / `totals` / `meals[]` |
 | PUT | `/api/meals/{date}/{slot}` | 食事を保存（同じ日・区分は置き換え）。`slot` は `breakfast|lunch|dinner|snack`。`photo` は省略で現状維持、`""` で削除、data URL（JPEG/PNG/WebP, 700KB以下）で設定 |
 | DELETE | `/api/meals/{date}/{slot}` | 食事を削除 |
-| POST | `/api/chat` | `{date, messages[{role, text}]}` → `{reply, record}`。`record` は記録の提案（無ければ `null`） |
+| GET | `/api/chat` | 会話履歴（古い順、最新200件） |
+| POST | `/api/chat` | `{date, text}` → `{reply, record, messages[]}`。直近30件を文脈として AI に渡し、発言と返答を保存。`record` は記録の提案（無ければ `null`） |
+| POST | `/api/chat/notes` | `{text}` → コーチ側の定型文（記録完了など）を保存 |
+| DELETE | `/api/chat` | 会話をすべて削除 |
 | GET | `/api/stats?date=` | `xp` / `level` / `xp_in_level` / `streak` / `today_meals` / `badges[]` |
 | GET | `/api/history?to=&days=` | 直近 N 日（1〜31、既定7）の日別 kcal と `target_kcal` |
 | POST | `/api/foods/search` | `{query}` → `{items[]}`（AIが候補を4件生成） |
 | GET | `/api/foods/frequent` | よく記録している品目（最大6件） |
 
-起動時に GORM の AutoMigrate でテーブル（`users` / `profiles` / `meals` / `meal_items`）を作成する（`backend/internal/db/migrate.go`）。食品マスタは持たず、カロリー・栄養素は AI の推定値を `meal_items` に直接保存する（初期の `foods` テーブルは起動時に削除する）。
+起動時に GORM の AutoMigrate でテーブル（`users` / `profiles` / `meals` / `meal_items` / `chat_messages`）を作成する（`backend/internal/db/migrate.go`）。食品マスタは持たず、カロリー・栄養素は AI の推定値を `meal_items` に直接保存する（初期の `foods` テーブルは起動時に削除する）。
 
 ## 認証（現在は開発用の自動ログイン）
 

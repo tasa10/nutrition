@@ -81,7 +81,11 @@ func run() error {
 	api.PUT("/meals/:date/:slot", mealHandler.Upsert)
 	api.DELETE("/meals/:date/:slot", mealHandler.Delete)
 
-	api.POST("/chat", handler.NewChatHandler(gormDB, aiService).Post)
+	chatHandler := handler.NewChatHandler(gormDB, aiService)
+	api.GET("/chat", chatHandler.Get)
+	api.POST("/chat", chatHandler.Post)
+	api.POST("/chat/notes", chatHandler.PostNote)
+	api.DELETE("/chat", chatHandler.Clear)
 
 	statsHandler := handler.NewStatsHandler(gormDB)
 	api.GET("/stats", statsHandler.Get)

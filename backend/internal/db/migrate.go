@@ -27,7 +27,7 @@ func Migrate(db *gorm.DB) error {
 		return err
 	}
 
-	return db.AutoMigrate(&model.Profile{}, &model.Meal{}, &model.MealItem{})
+	return db.AutoMigrate(&model.Profile{}, &model.Meal{}, &model.MealItem{}, &model.ChatMessage{})
 }
 
 func seedDevUser(db *gorm.DB) error {
