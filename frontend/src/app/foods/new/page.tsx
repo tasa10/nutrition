@@ -34,9 +34,7 @@ export default function NewFoodPage() {
     <div className="flex flex-1 flex-col items-center bg-zinc-50 px-4 py-12 font-sans dark:bg-black">
       <main className="flex w-full max-w-md flex-col gap-6">
         <div className="flex items-baseline justify-between">
-          <h1 className="text-2xl font-semibold text-black dark:text-zinc-50">
-            食品を追加
-          </h1>
+          <h1 className="text-2xl font-semibold text-black dark:text-zinc-50">食品を追加</h1>
           <Link
             href="/foods/"
             className="text-sm text-zinc-500 underline hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
@@ -50,9 +48,7 @@ export default function NewFoodPage() {
           className="flex flex-col gap-5 rounded-2xl bg-white p-6 shadow-sm dark:bg-zinc-900"
         >
           <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-              食品名
-            </span>
+            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">食品名</span>
             <input
               type="text"
               value={name}
@@ -65,9 +61,7 @@ export default function NewFoodPage() {
           </label>
 
           <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-              基準量
-            </span>
+            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">基準量</span>
             <select
               value={baseUnit}
               onChange={(e) => setBaseUnit(e.target.value)}
@@ -86,9 +80,7 @@ export default function NewFoodPage() {
           </p>
 
           {error && (
-            <p className="text-sm text-red-600 dark:text-red-400">
-              登録に失敗しました（{error}）
-            </p>
+            <p className="text-sm text-red-600 dark:text-red-400">登録に失敗しました（{error}）</p>
           )}
 
           <button

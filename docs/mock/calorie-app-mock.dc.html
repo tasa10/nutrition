@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #E7E1D6; font-family: 'Noto Sans JP', -apple-system, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  a { color: oklch(0.55 0.13 152); text-decoration: none; }
+  a:hover { color: oklch(0.45 0.13 152); }
+  input, textarea, button { font-family: inherit; }
+  @keyframes wv { 0%,100% { transform: scaleY(0.2); } 50% { transform: scaleY(1); } }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 oklch(0.62 0.15 152 / 0.45); } 70% { box-shadow: 0 0 0 22px oklch(0.62 0.15 152 / 0); } }
+  @keyframes pop { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  @keyframes dots { 0%,20% { opacity: 0.2; } 50% { opacity: 1; } 80%,100% { opacity: 0.2; } }
+</style>
+</helmet>
+
+<div style="min-height: 100vh; display: flex; justify-content: center; align-items: flex-start;">
+<div style="width: 100%; max-width: 440px; min-height: 100vh; background: #FAF7F2; color: #17150F; display: flex; flex-direction: column; box-shadow: 0 0 60px rgba(23,21,15,0.12);">
+
+  <!-- ══ オンボーディング ══ -->
+  <sc-if value="{{ isOnboard }}" hint-placeholder-val="{{ true }}">
+    <div style="flex: 1; display: flex; flex-direction: column; gap: 22px; padding: 44px 24px 36px;">
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-family: 'DM Mono', monospace; font-size: 12px; letter-spacing: 0.16em; color: oklch(0.55 0.13 152);">LV.1 スタート</div>
+        <div style="font-size: 30px; font-weight: 900; line-height: 1.3; letter-spacing: -0.01em;">しゃべるだけで<br>カロリー記録</div>
+        <div style="font-size: 14px; line-height: 1.8; color: #57524A; text-wrap: pretty;">音声かチャットで伝えるだけ。AIが食材ごとに分解して、カロリー・PFC・塩分まで自動計算します。</div>
+      </div>
+
+      <div style="background: #fff; border-radius: 24px; padding: 20px; display: flex; flex-direction: column; gap: 18px; box-shadow: 0 2px 12px rgba(23,21,15,0.05);">
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="font-size: 13px; font-weight: 500; color: #57524A;">現在の体重 (kg)</div>
+          <input type="number" inputmode="decimal" value="{{ wNow }}" onChange="{{ onWNow }}" style="width: 100%; height: 48px; border: 1px solid #E4DED3; border-radius: 14px; padding: 0 14px; font-size: 17px; font-family: 'DM Mono', monospace; background: #FCFBF8; color: #17150F;">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="font-size: 13px; font-weight: 500; color: #57524A;">目標体重 (kg)</div>
+          <input type="number" inputmode="decimal" value="{{ wGoal }}" onChange="{{ onWGoal }}" style="width: 100%; height: 48px; border: 1px solid #E4DED3; border-radius: 14px; padding: 0 14px; font-size: 17px; font-family: 'DM Mono', monospace; background: #FCFBF8; color: #17150F;">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="font-size: 13px; font-weight: 500; color: #57524A;">活動量</div>
+          <div style="display: flex; gap: 8px;">
+            <sc-for list="{{ actLevels }}" as="a" hint-placeholder-count="3">
+              <div onClick="{{ a.pick }}" style="{{ a.chip }}">{{ a.label }}</div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 4px; border-top: 1px solid #F0EBE2;">
+          <div style="font-size: 13px; color: #57524A;">1日の目標カロリー</div>
+          <div style="font-family: 'DM Mono', monospace; font-size: 24px; font-weight: 500;">{{ target }}<span style="font-size: 13px; color: #9A9184;"> kcal</span></div>
+        </div>
+      </div>
+
+      <div onClick="{{ startApp }}" style="margin-top: auto; background: oklch(0.62 0.15 152); color: #fff; border-radius: 99px; min-height: 54px; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 700; box-shadow: 0 8px 22px oklch(0.62 0.15 152 / 0.3); cursor: pointer;">はじめる</div>
+    </div>
+  </sc-if>
+
+  <!-- ══ ヘッダー ══ -->
+  <sc-if value="{{ showChrome }}" hint-placeholder-val="{{ false }}">
+    <div style="position: sticky; top: 0; z-index: 20; background: rgba(250,247,242,0.88); backdrop-filter: blur(14px); border-bottom: 1px solid #EDE8DF; padding: 14px 18px; display: flex; align-items: center; gap: 12px;">
+      <div style="width: 40px; height: 40px; border-radius: 13px; background: oklch(0.62 0.15 152); color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1;">
+        <div style="font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 500;">{{ level }}</div>
+        <div style="font-size: 7px; letter-spacing: 0.1em;">LV</div>
+      </div>
+      <div style="flex: 1; display: flex; flex-direction: column; gap: 5px;">
+        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+          <div style="font-size: 13px; font-weight: 700;">{{ questLabel }}</div>
+          <div style="font-family: 'DM Mono', monospace; font-size: 11px; color: #9A9184;">{{ xpLabel }}</div>
+        </div>
+        <div style="height: 6px; border-radius: 99px; background: #EDE8DF; overflow: hidden;">
+          <div style="{{ xpBar }}"></div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 4px; background: oklch(0.95 0.04 80); border-radius: 99px; padding: 6px 11px;">
+        <div style="width: 8px; height: 8px; border-radius: 50%; background: oklch(0.7 0.16 55);"></div>
+        <div style="font-family: 'DM Mono', monospace; font-size: 12px; color: oklch(0.45 0.1 55);">{{ streak }}日</div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ══ ホーム ══ -->
+  <sc-if value="{{ isHome }}" hint-placeholder-val="{{ false }}">
+    <div style="flex: 1; display: flex; flex-direction: column; gap: 16px; padding: 18px 18px 120px;">
+      <div style="background: #fff; border-radius: 28px; padding: 24px; display: flex; align-items: center; gap: 20px; box-shadow: 0 2px 12px rgba(23,21,15,0.05);">
+        <div style="{{ ring }}">
+          <div style="width: 102px; height: 102px; border-radius: 50%; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <div style="font-family: 'DM Mono', monospace; font-size: 27px; font-weight: 500; line-height: 1.1;">{{ remaining }}</div>
+            <div style="font-size: 10px; color: #9A9184; letter-spacing: 0.04em;">残りkcal</div>
+          </div>
+        </div>
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 14px;">
+          <div style="display: flex; flex-direction: column; gap: 2px;">
+            <div style="font-size: 11px; color: #9A9184;">摂取</div>
+            <div style="font-family: 'DM Mono', monospace; font-size: 21px;">{{ consumed }}</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 2px;">
+            <div style="font-size: 11px; color: #9A9184;">目標</div>
+            <div style="font-family: 'DM Mono', monospace; font-size: 21px;">{{ target }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="background: #fff; border-radius: 24px; padding: 20px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 2px 12px rgba(23,21,15,0.05);">
+        <div style="font-size: 13px; font-weight: 700; color: #57524A;">PFCバランス</div>
+        <sc-for list="{{ macros }}" as="m" hint-placeholder-count="3">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 66px; font-size: 12px; color: #57524A;">{{ m.label }}</div>
+            <div style="flex: 1; height: 8px; border-radius: 99px; background: #EDE8DF; overflow: hidden;"><div style="{{ m.bar }}"></div></div>
+            <div style="width: 62px; text-align: right; font-family: 'DM Mono', monospace; font-size: 12px; color: #57524A;">{{ m.val }}</div>
+          </div>
+        </sc-for>
+        <div style="display: flex; gap: 8px; padding-top: 6px; border-top: 1px solid #F0EBE2;">
+          <div style="flex: 1; background: #F6F2EA; border-radius: 12px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: baseline;">
+            <span style="font-size: 11px; color: #9A9184;">塩分</span><span style="font-family: 'DM Mono', monospace; font-size: 13px;">{{ saltLabel }}</span>
+          </div>
+          <div style="flex: 1; background: #F6F2EA; border-radius: 12px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: baseline;">
+            <span style="font-size: 11px; color: #9A9184;">糖質</span><span style="font-family: 'DM Mono', monospace; font-size: 13px;">{{ sugarLabel }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="font-size: 13px; font-weight: 700; color: #57524A; padding-left: 4px;">今日の食事</div>
+        <sc-for list="{{ slotRows }}" as="s" hint-placeholder-count="4">
+          <div onClick="{{ s.open }}" style="{{ s.card }}">
+            <div style="{{ s.badge }}">{{ s.short }}</div>
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0;">
+              <div style="font-size: 14px; font-weight: 500; text-wrap: pretty;">{{ s.title }}</div>
+              <div style="font-size: 11px; color: #9A9184;">{{ s.sub }}</div>
+            </div>
+            <sc-if value="{{ s.hasPhoto }}" hint-placeholder-val="{{ false }}">
+              <div style="{{ s.photoStyle }}"></div>
+            </sc-if>
+            <div style="{{ s.kcalStyle }}">{{ s.kcal }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="display: flex; gap: 10px; padding-top: 4px;">
+        <div onClick="{{ goPick }}" style="flex: 1; min-height: 52px; background: oklch(0.62 0.15 152); color: #fff; border-radius: 99px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 15px; font-weight: 700; box-shadow: 0 8px 20px oklch(0.62 0.15 152 / 0.28); cursor: pointer;">
+          <span style="width: 9px; height: 13px; border-radius: 99px; background: #fff; display: inline-block;"></span>音声で記録
+        </div>
+        <div onClick="{{ goChat }}" style="flex: 1; min-height: 52px; background: #fff; border: 1px solid #E4DED3; border-radius: 99px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; cursor: pointer;">AIに相談</div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ══ 記録の編集 ══ -->
+  <sc-if value="{{ isEdit }}" hint-placeholder-val="{{ false }}">
+    <div style="flex: 1; display: flex; flex-direction: column; gap: 16px; padding: 22px 18px 40px;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div onClick="{{ cancelEdit }}" style="width: 44px; height: 44px; flex: none; border-radius: 50%; background: #fff; border: 1px solid #E4DED3; box-shadow: 0 2px 8px rgba(23,21,15,0.06); display: flex; align-items: center; justify-content: center; font-size: 17px; color: #17150F; cursor: pointer;">←</div>
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <div style="font-size: 22px; font-weight: 900;">{{ editSlot }}を編集</div>
+          <div style="font-size: 11px; color: #9A9184;">名前とカロリーを直せます</div>
+        </div>
+      </div>
+
+      <div style="background: #fff; border-radius: 26px; padding: 20px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 2px 12px rgba(23,21,15,0.05);">
+        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+          <div style="font-size: 13px; font-weight: 700; color: #57524A;">合計</div>
+          <div style="font-family: 'DM Mono', monospace; font-size: 28px; font-weight: 500;">{{ editTotal }}<span style="font-size: 13px; color: #9A9184;"> kcal</span></div>
+        </div>
+        <sc-for list="{{ editItems }}" as="it" hint-placeholder-count="2">
+          <div style="display: flex; flex-direction: column; gap: 8px; padding-bottom: 14px; border-bottom: 1px solid #F0EBE2;">
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <input value="{{ it.name }}" onChange="{{ it.setName }}" style="flex: 1; min-width: 0; min-height: 44px; border: 1px solid #E4DED3; border-radius: 13px; padding: 0 12px; font-size: 14px; background: #FCFBF8; color: #17150F;">
+              <div onClick="{{ it.remove }}" style="width: 44px; height: 44px; flex: none; border-radius: 50%; background: #F6F2EA; color: #9A9184; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer;">×</div>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <input value="{{ it.detail }}" onChange="{{ it.setDetail }}" placeholder="分量の目安" style="flex: 1; min-width: 0; min-height: 40px; border: 1px solid #E4DED3; border-radius: 13px; padding: 0 12px; font-size: 12px; background: #FCFBF8; color: #57524A;">
+              <input type="number" inputmode="numeric" value="{{ it.kcal }}" onChange="{{ it.setKcal }}" style="width: 88px; flex: none; min-height: 40px; border: 1px solid #E4DED3; border-radius: 13px; padding: 0 10px; font-size: 14px; font-family: 'DM Mono', monospace; text-align: right; background: #FCFBF8; color: #17150F;">
+              <div style="font-size: 11px; color: #9A9184; width: 26px;">kcal</div>
+            </div>
+          </div>
+        </sc-for>
+        <div onClick="{{ addEditItem }}" style="align-self: flex-start; min-height: 44px; display: flex; align-items: center; border: 1.5px dashed #DCD5C9; border-radius: 99px; padding: 0 20px; font-size: 13px; font-weight: 500; color: #57524A; cursor: pointer;">+ 品目を追加</div>
+      </div>
+
+      <div style="margin-top: auto; display: flex; flex-direction: column; gap: 10px; padding-top: 10px;">
+        <div onClick="{{ saveEdit }}" style="min-height: 54px; background: oklch(0.62 0.15 152); color: #fff; border-radius: 99px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; box-shadow: 0 8px 22px oklch(0.62 0.15 152 / 0.3); cursor: pointer;">保存する</div>
+        <div style="display: flex; gap: 10px;">
+          <div onClick="{{ reRecord }}" style="flex: 1; min-height: 46px; background: #fff; border: 1px solid #E4DED3; border-radius: 99px; display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer;">音声で言い直す</div>
+          <div onClick="{{ deleteMeal }}" style="flex: 1; min-height: 46px; background: #fff; border: 1px solid oklch(0.85 0.06 30); color: oklch(0.5 0.14 30); border-radius: 99px; display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer;">この記録を削除</div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ══ 区分えらび ══ -->
+  <sc-if value="{{ isPick }}" hint-placeholder-val="{{ false }}">
+    <div style="flex: 1; display: flex; flex-direction: column; gap: 20px; padding: 22px 18px 120px;">
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="font-size: 25px; font-weight: 900;">なに食べた？</div>
+        <div style="font-size: 13px; color: #9A9184;">区分をえらぶと音声入力がはじまります</div>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <sc-for list="{{ slotCards }}" as="s" hint-placeholder-count="4">
+          <div onClick="{{ s.pick }}" style="{{ s.card }}">
+            <div style="{{ s.icon }}"></div>
+            <div style="font-size: 18px; font-weight: 700;">{{ s.label }}</div>
+            <div style="{{ s.metaStyle }}">{{ s.meta }}</div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="background: #fff; border-radius: 22px; padding: 18px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 2px 12px rgba(23,21,15,0.05);">
+        <div style="font-size: 14px; font-weight: 700;">手で探して追加</div>
+        <div style="font-size: 12px; line-height: 1.7; color: #57524A;">よく食べるものはお気に入りからワンタップ。</div>
+        <div onClick="{{ goSearch }}" style="align-self: flex-start; min-height: 44px; display: flex; align-items: center; border: 1px solid #E4DED3; border-radius: 99px; padding: 0 20px; font-size: 13px; font-weight: 500; cursor: pointer;">食品を検索</div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ══ 音声入力 ══ -->
+  <sc-if value="{{ isVoice }}" hint-placeholder-val="{{ false }}">
+    <div style="flex: 1; display: flex; flex-direction: column; gap: 20px; padding: 26px 22px 40px; background: #17150F; color: #fff; min-height: 100vh;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div onClick="{{ goPick }}" style="width: 44px; height: 44px; flex: none; border-radius: 50%; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 17px; color: #fff; cursor: pointer;">←</div>
+        <div style="font-size: 13px; color: rgba(255,255,255,0.8); font-weight: 500;">{{ slotLabel }}を記録中</div>
+      </div>
+
+      <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 18px;">
+        <div style="font-size: 12px; font-family: 'DM Mono', monospace; letter-spacing: 0.14em; color: oklch(0.72 0.14 152);">{{ micState }}</div>
+        <div style="{{ transcriptStyle }}">{{ transcriptText }}</div>
+        <sc-if value="{{ needsTyping }}" hint-placeholder-val="{{ false }}">
+          <textarea value="{{ transcript }}" onChange="{{ onTranscript }}" placeholder="例：豚の生姜焼き定食、ごはん大盛り、味噌汁" style="width: 100%; min-height: 96px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.18); border-radius: 18px; padding: 14px; color: #fff; font-size: 15px; line-height: 1.6; resize: none;"></textarea>
+        </sc-if>
+      </div>
+
+      <sc-if value="{{ listening }}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; align-items: flex-end; justify-content: center; gap: 5px; height: 84px;">
+          <div style="width: 6px; height: 40%; border-radius: 99px; background: oklch(0.72 0.14 152); animation: wv 1.1s ease-in-out infinite;"></div>
+          <div style="width: 6px; height: 72%; border-radius: 99px; background: oklch(0.72 0.14 152); animation: wv 0.9s ease-in-out 0.1s infinite;"></div>
+          <div style="width: 6px; height: 100%; border-radius: 99px; background: oklch(0.72 0.14 152); animation: wv 1.3s ease-in-out 0.2s infinite;"></div>
+          <div style="width: 6px; height: 56%; border-radius: 99px; background: oklch(0.72 0.14 152); animation: wv 1s ease-in-out 0.3s infinite;"></div>
+          <div style="width: 6px; height: 86%; border-radius: 99px; background: oklch(0.72 0.14 152); animation: wv 1.2s ease-in-out 0.15s infinite;"></div>
+          <div style="width: 6px; height: 44%; border-radius: 99px; background: oklch(0.72 0.14 152); animation: wv 0.95s ease-in-out 0.25s infinite;"></div>
+          <div style="width: 6px; height: 74%; border-radius: 99px; background: oklch(0.72 0.14 152); animation: wv 1.15s ease-in-out 0.05s infinite;"></div>
+        </div>
+      </sc-if>
+
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 16px;">
+        <div onClick="{{ toggleMic }}" style="{{ micBtn }}">
+          <div style="{{ micGlyph }}"></div>
+        </div>
+        <div style="font-size: 12px; color: rgba(255,255,255,0.45);">{{ micHint }}</div>
+        <div onClick="{{ analyze }}" style="{{ analyzeBtn }}">{{ analyzeLabel }}</div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ══ AI解析の確認 ══ -->
+  <sc-if value="{{ isReview }}" hint-placeholder-val="{{ false }}">
+    <div style="flex: 1; display: flex; flex-direction: column; gap: 16px; padding: 22px 18px 40px;">
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.14em; color: oklch(0.55 0.13 152);">AI ANALYSIS</div>
+        <div style="font-size: 24px; font-weight: 900;">こう記録します</div>
+        <div style="font-size: 12px; color: #9A9184;">ちがうものは削除、写真も足せます</div>
+      </div>
+
+      <div style="background: #fff; border-radius: 26px; padding: 22px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 2px 12px rgba(23,21,15,0.05); animation: pop 0.3s ease-out;">
+        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+          <div style="font-size: 15px; font-weight: 700;">{{ slotLabel }}</div>
+          <div style="font-family: 'DM Mono', monospace; font-size: 30px; font-weight: 500;">{{ reviewTotal }}<span style="font-size: 13px; color: #9A9184;"> kcal</span></div>
+        </div>
+        <sc-for list="{{ reviewItems }}" as="it" hint-placeholder-count="3">
+          <div style="display: flex; align-items: center; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid #F0EBE2;">
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+              <div style="font-size: 14px; font-weight: 500;">{{ it.name }}</div>
+              <div style="font-size: 11px; color: #9A9184;">{{ it.detail }}</div>
+            </div>
+            <div style="{{ it.confStyle }}">{{ it.conf }}</div>
+            <div style="font-family: 'DM Mono', monospace; font-size: 14px; width: 42px; text-align: right;">{{ it.kcal }}</div>
+            <div onClick="{{ it.remove }}" style="width: 30px; height: 30px; border-radius: 50%; background: #F6F2EA; color: #9A9184; display: flex; align-items: center; justify-content: center; font-size: 15px; line-height: 1; cursor: pointer;">×</div>
+          </div>
+        </sc-for>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <div style="font-family: 'DM Mono', monospace; font-size: 11px; padding: 7px 11px; border-radius: 9px; background: #F6F2EA; color: #57524A;">{{ reviewP }}</div>
+          <div style="font-family: 'DM Mono', monospace; font-size: 11px; padding: 7px 11px; border-radius: 9px; background: #F6F2EA; color: #57524A;">{{ reviewF }}</div>
+          <div style="font-family: 'DM Mono', monospace; font-size: 11px; padding: 7px 11px; border-radius: 9px; background: #F6F2EA; color: #57524A;">{{ reviewC }}</div>
+          <div style="font-family: 'DM Mono', monospace; font-size: 11px; padding: 7px 11px; border-radius: 9px; background: #F6F2EA; color: #57524A;">{{ reviewSalt }}</div>
+          <div style="font-family: 'DM Mono', monospace; font-size: 11px; padding: 7px 11px; border-radius: 9px; background: #F6F2EA; color: #57524A;">{{ reviewSugar }}</div>
+        </div>
+      </div>
+
+      <div style="background: #fff; border-radius: 22px; padding: 16px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 12px rgba(23,21,15,0.05);">
+        <sc-if value="{{ hasPhoto }}" hint-placeholder-val="{{ false }}">
+          <div style="{{ photoStyle }}"></div>
+        </sc-if>
+        <sc-if value="{{ noPhoto }}" hint-placeholder-val="{{ true }}">
+          <div style="width: 64px; height: 64px; border-radius: 16px; background: repeating-linear-gradient(45deg, #F2EDE4, #F2EDE4 6px, #EAE3D7 6px, #EAE3D7 12px);"></div>
+        </sc-if>
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 3px;">
+          <div style="font-size: 13px; font-weight: 500;">写真をつける</div>
+          <div style="font-size: 11px; color: #9A9184;">見た目も残すと記録簿が楽しい</div>
+        </div>
+        <label style="min-height: 40px; display: flex; align-items: center; border: 1px solid #E4DED3; border-radius: 99px; padding: 0 16px; font-size: 13px; cursor: pointer;">
+          選ぶ
+          <input type="file" accept="image/*" onChange="{{ onPhoto }}" style="display: none;">
+        </label>
+      </div>
+
+      <sc-if value="{{ hasAdvice }}" hint-placeholder-val="{{ false }}">
+        <div style="background: oklch(0.96 0.03 152); border-radius: 22px; padding: 18px; display: flex; flex-direction: column; gap: 6px;">
+          <div style="font-size: 12px; font-weight: 700; color: oklch(0.45 0.11 152);">コーチのひとこと</div>
+          <div style="font-size: 13px; line-height: 1.8; color: #3A3630; text-wrap: pretty;">{{ advice }}</div>
+        </div>
+      </sc-if>
+
+      <div style="margin-top: auto; display: flex; flex-direction: column; gap: 10px; padding-top: 10px;">
+        <div onClick="{{ commit }}" style="min-height: 54px; background: oklch(0.62 0.15 152); color: #fff; border-radius: 99px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; box-shadow: 0 8px 22px oklch(0.62 0.15 152 / 0.3); cursor: pointer;">この内容で記録 +20XP</div>
+        <div onClick="{{ retry }}" style="min-height: 46px; background: #fff; border: 1px solid #E4DED3; border-radius: 99px; display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer;">言い直す</div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ══ チャット相談 ══ -->
+  <sc-if value="{{ isChat }}" hint-placeholder-val="{{ false }}">
+    <div style="flex: 1; display: flex; flex-direction: column; padding: 16px 16px 120px; gap: 12px;">
+      <div style="display: flex; align-items: center; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid #EDE8DF;">
+        <div style="width: 34px; height: 34px; border-radius: 50%; background: oklch(0.62 0.15 152);"></div>
+        <div style="display: flex; flex-direction: column;">
+          <div style="font-size: 14px; font-weight: 700;">AIコーチ</div>
+          <div style="font-size: 11px; color: oklch(0.55 0.13 152);">{{ chatStatus }}</div>
+        </div>
+      </div>
+
+      <sc-for list="{{ chatRows }}" as="m" hint-placeholder-count="2">
+        <div style="{{ m.bubble }}">{{ m.text }}</div>
+      </sc-for>
+
+      <sc-if value="{{ chatBusy }}" hint-placeholder-val="{{ false }}">
+        <div style="align-self: flex-start; background: #fff; border-radius: 20px 20px 20px 6px; padding: 14px 18px; display: flex; gap: 5px; box-shadow: 0 2px 12px rgba(23,21,15,0.05);">
+          <div style="width: 7px; height: 7px; border-radius: 50%; background: #B8AFA0; animation: dots 1.2s infinite;"></div>
+          <div style="width: 7px; height: 7px; border-radius: 50%; background: #B8AFA0; animation: dots 1.2s 0.2s infinite;"></div>
+          <div style="width: 7px; height: 7px; border-radius: 50%; background: #B8AFA0; animation: dots 1.2s 0.4s infinite;"></div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ hasChatCard }}" hint-placeholder-val="{{ false }}">
+        <div style="align-self: flex-start; width: 88%; background: #fff; border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 2px 12px rgba(23,21,15,0.05); animation: pop 0.25s ease-out;">
+          <div style="font-size: 12px; color: #9A9184;">この内容で記録しますか？</div>
+          <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px;">
+            <div style="font-size: 14px; font-weight: 700;">{{ chatCardName }}</div>
+            <div style="font-family: 'DM Mono', monospace; font-size: 20px;">{{ chatCardKcal }}</div>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <div onClick="{{ acceptCard }}" style="min-height: 42px; display: flex; align-items: center; background: oklch(0.62 0.15 152); color: #fff; border-radius: 99px; padding: 0 20px; font-size: 13px; font-weight: 700; cursor: pointer;">{{ chatCardSlot }}に記録</div>
+            <div onClick="{{ dismissCard }}" style="min-height: 42px; display: flex; align-items: center; border: 1px solid #E4DED3; border-radius: 99px; padding: 0 20px; font-size: 13px; cursor: pointer;">あとで</div>
+          </div>
+        </div>
+      </sc-if>
+
+      <div style="margin-top: auto; display: flex; flex-direction: column; gap: 10px; padding-top: 14px;">
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <sc-for list="{{ chatChips }}" as="c" hint-placeholder-count="3">
+            <div onClick="{{ c.send }}" style="min-height: 38px; display: flex; align-items: center; background: #fff; border: 1px solid #E4DED3; border-radius: 99px; padding: 0 14px; font-size: 12px; cursor: pointer;">{{ c.label }}</div>
+          </sc-for>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: flex-end;">
+          <textarea value="{{ chatInput }}" onChange="{{ onChatInput }}" onKeyDown="{{ onChatKey }}" placeholder="食べたものや相談を入力" style="flex: 1; min-height: 48px; max-height: 120px; background: #fff; border: 1px solid #E4DED3; border-radius: 22px; padding: 13px 16px; font-size: 15px; line-height: 1.5; resize: none; color: #17150F;"></textarea>
+          <div onClick="{{ sendChat }}" style="width: 48px; height: 48px; flex: none; border-radius: 50%; background: oklch(0.62 0.15 152); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer;">↑</div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ══ 記録簿 / 週次 ══ -->
+  <sc-if value="{{ isHistory }}" hint-placeholder-val="{{ false }}">
+    <div style="flex: 1; display: flex; flex-direction: column; gap: 18px; padding: 22px 18px 120px;">
+      <div style="font-size: 25px; font-weight: 900;">記録簿</div>
+
+      <div style="background: #fff; border-radius: 26px; padding: 22px 20px; display: flex; flex-direction: column; gap: 18px; box-shadow: 0 2px 12px rgba(23,21,15,0.05);">
+        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+          <div style="font-size: 13px; font-weight: 700; color: #57524A;">この7日間</div>
+          <div style="font-family: 'DM Mono', monospace; font-size: 12px; color: #9A9184;">平均 {{ weekAvg }} kcal</div>
+        </div>
+        <div style="display: flex; align-items: flex-end; gap: 8px; height: 140px;">
+          <sc-for list="{{ week }}" as="d" hint-placeholder-count="7">
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; height: 100%; justify-content: flex-end;">
+              <div style="font-family: 'DM Mono', monospace; font-size: 10px; color: #9A9184;">{{ d.kcal }}</div>
+              <div style="{{ d.bar }}"></div>
+              <div style="font-size: 11px; color: #9A9184;">{{ d.label }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display: flex; gap: 14px; font-size: 11px; color: #9A9184;">
+          <div style="display: flex; align-items: center; gap: 5px;"><span style="width: 9px; height: 9px; border-radius: 3px; background: oklch(0.62 0.15 152); display: inline-block;"></span>目標内</div>
+          <div style="display: flex; align-items: center; gap: 5px;"><span style="width: 9px; height: 9px; border-radius: 3px; background: oklch(0.7 0.16 55); display: inline-block;"></span>超過</div>
+        </div>
+      </div>
+
+      <div style="background: #fff; border-radius: 24px; padding: 20px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 2px 12px rgba(23,21,15,0.05);">
+        <div style="font-size: 13px; font-weight: 700; color: #57524A;">実績バッジ</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+          <sc-for list="{{ badges }}" as="b" hint-placeholder-count="3">
+            <div style="{{ b.card }}">
+              <div style="{{ b.dot }}"></div>
+              <div style="font-size: 11px; font-weight: 500; text-align: center; line-height: 1.4;">{{ b.label }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="font-size: 13px; font-weight: 700; color: #57524A; padding-left: 4px;">今日の内訳</div>
+        <sc-for list="{{ logRows }}" as="l" hint-placeholder-count="2">
+          <div style="background: #fff; border-radius: 20px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 2px 12px rgba(23,21,15,0.05);">
+            <div style="display: flex; justify-content: space-between; align-items: baseline;">
+              <div style="font-size: 14px; font-weight: 700;">{{ l.slot }}</div>
+              <div style="font-family: 'DM Mono', monospace; font-size: 15px;">{{ l.kcal }}</div>
+            </div>
+            <sc-for list="{{ l.items }}" as="it" hint-placeholder-count="2">
+              <div style="display: flex; justify-content: space-between; gap: 10px; font-size: 12px; color: #57524A;">
+                <span>{{ it.name }}</span><span style="font-family: 'DM Mono', monospace; color: #9A9184;">{{ it.kcal }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ══ 検索・お気に入り ══ -->
+  <sc-if value="{{ isSearch }}" hint-placeholder-val="{{ false }}">
+    <div style="flex: 1; display: flex; flex-direction: column; gap: 18px; padding: 22px 18px 120px;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div onClick="{{ goPick }}" style="width: 44px; height: 44px; flex: none; border-radius: 50%; background: #fff; border: 1px solid #E4DED3; box-shadow: 0 2px 8px rgba(23,21,15,0.06); display: flex; align-items: center; justify-content: center; font-size: 17px; color: #17150F; cursor: pointer;">←</div>
+        <div style="font-size: 25px; font-weight: 900;">食品をさがす</div>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <input value="{{ query }}" onChange="{{ onQuery }}" onKeyDown="{{ onQueryKey }}" placeholder="例：サラダチキン" style="flex: 1; min-height: 48px; border: 1px solid #E4DED3; border-radius: 16px; padding: 0 14px; font-size: 15px; background: #fff; color: #17150F;">
+        <div onClick="{{ runSearch }}" style="min-height: 48px; display: flex; align-items: center; background: oklch(0.62 0.15 152); color: #fff; border-radius: 16px; padding: 0 20px; font-size: 14px; font-weight: 700; cursor: pointer;">検索</div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="font-size: 13px; font-weight: 700; color: #57524A; padding-left: 4px;">{{ searchHeading }}</div>
+        <sc-for list="{{ searchRows }}" as="r" hint-placeholder-count="4">
+          <div style="background: #fff; border-radius: 20px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 12px rgba(23,21,15,0.05);">
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+              <div style="font-size: 14px; font-weight: 500;">{{ r.name }}</div>
+              <div style="font-size: 11px; color: #9A9184;">{{ r.detail }}</div>
+            </div>
+            <div style="font-family: 'DM Mono', monospace; font-size: 14px;">{{ r.kcal }}</div>
+            <div onClick="{{ r.add }}" style="width: 44px; height: 44px; flex: none; border-radius: 50%; background: oklch(0.96 0.03 152); color: oklch(0.45 0.11 152); display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: pointer;">+</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ══ タブバー ══ -->
+  <sc-if value="{{ showChrome }}" hint-placeholder-val="{{ false }}">
+    <div style="position: fixed; bottom: 0; left: 0; right: 0; display: flex; justify-content: center; pointer-events: none;">
+      <div style="width: 100%; max-width: 440px; background: rgba(250,247,242,0.94); backdrop-filter: blur(16px); border-top: 1px solid #EDE8DF; padding: 8px 8px 22px; display: flex; pointer-events: auto;">
+        <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+          <div onClick="{{ t.go }}" style="flex: 1; min-height: 48px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; cursor: pointer;">
+            <div style="{{ t.dot }}"></div>
+            <div style="{{ t.text }}">{{ t.label }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:440,&quot;height&quot;:900}}">
+const GREEN = 'oklch(0.62 0.15 152)';
+const SLOTS = ['朝食', '昼食', '夕食', '間食'];
+const SHORT = { '朝食': '朝', '昼食': '昼', '夕食': '夕', '間食': '間' };
+const HUE = { '朝食': 90, '昼食': 152, '夕食': 265, '間食': 30 };
+
+class Component extends DCLogic {
+  state = {
+    screen: 'onboard',
+    wNow: 68, wGoal: 62, act: 1,
+    meals: [],
+    slot: '夕食',
+    transcript: '', listening: false, analyzing: false, speechOK: true,
+    review: null, photo: null,
+    chat: [{ role: 'assistant', text: 'よっ、今日もいこう！食べたものを言うか、迷ってるなら相談してくれ。' }],
+    chatInput: '', chatBusy: false, chatCard: null,
+    query: '', searchResults: null, searching: false,
+    xp: 0, streak: 4,
+  };
+
+  componentDidMount() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { this.setState({ speechOK: false }); return; }
+    const r = new SR();
+    r.lang = 'ja-JP'; r.continuous = true; r.interimResults = true;
+    r.onresult = (e) => {
+      let t = '';
+      for (let i = 0; i < e.results.length; i++) t += e.results[i][0].transcript;
+      this.setState({ transcript: t });
+    };
+    r.onerror = () => this.setState({ listening: false, speechOK: false });
+    r.onend = () => this.setState({ listening: false });
+    this.rec = r;
+  }
+
+  target() {
+    const base = this.state.wNow * 22;
+    const mult = [1.2, 1.45, 1.7][this.state.act];
+    const deficit = this.state.wGoal < this.state.wNow ? 400 : 0;
+    return Math.round((base * mult - deficit) / 10) * 10;
+  }
+  totals() {
+    const t = { kcal: 0, p: 0, f: 0, c: 0, salt: 0, sugar: 0 };
+    this.state.meals.forEach(m => m.items.forEach(i => {
+      t.kcal += i.kcal || 0; t.p += i.protein || 0; t.f += i.fat || 0;
+      t.c += i.carbs || 0; t.salt += i.salt || 0; t.sugar += i.sugar || 0;
+    }));
+    return t;
+  }
+  nf(n) { return Math.round(n).toLocaleString('en-US'); }
+
+  async ask(body) {
+    const raw = await window.claude.complete(body);
+    const m = raw.match(/\{[\s\S]*\}/);
+    if (!m) throw new Error('no json');
+    return JSON.parse(m[0]);
+  }
+
+  toggleMic = () => {
+    if (!this.rec) { this.setState({ speechOK: false }); return; }
+    if (this.state.listening) { try { this.rec.stop(); } catch (e) {} this.setState({ listening: false }); return; }
+    this.setState({ transcript: '', listening: true });
+    try { this.rec.start(); } catch (e) { this.setState({ listening: false, speechOK: false }); }
+  };
+
+  analyze = async () => {
+    const text = this.state.transcript.trim();
+    if (!text || this.state.analyzing) return;
+    if (this.state.listening) { try { this.rec.stop(); } catch (e) {} }
+    this.setState({ analyzing: true, listening: false });
+    try {
+      const j = await this.ask({
+        max_tokens: 1400,
+        system: '日本の食事内容を栄養解析するアシスタント。JSONのみを返す。日本の一般的な外食・家庭料理の分量を前提に推定する。絵文字は絶対に使わない。',
+        messages: [{ role: 'user', content: `次の発話を食材・料理ごとに分解し、JSONだけ返して。\n発話:「${text}」\n形式: {"items":[{"name":"料理名","detail":"分量の目安","kcal":数値,"protein":数値,"fat":数値,"carbs":数値,"salt":数値,"sugar":数値,"confidence":"high|mid|low"}],"advice":"ゲーム的で楽しく前向きな一言アドバイス(60字以内、絵文字なし)"}` }],
+      });
+      this.setState({ screen: 'review', review: j, analyzing: false });
+    } catch (e) {
+      this.setState({ analyzing: false, review: { items: [{ name: text, detail: '解析できませんでした', kcal: 0, confidence: 'low' }], advice: '通信に失敗しました。もう一度お試しください。' }, screen: 'review' });
+    }
+  };
+
+  commit = () => {
+    const r = this.state.review;
+    if (!r) return;
+    const meal = {
+      slot: this.state.slot, items: r.items, photo: this.state.photo,
+      time: new Date().toTimeString().slice(0, 5), source: '音声入力',
+    };
+    this.setState(s => ({
+      meals: s.meals.filter(m => m.slot !== s.slot).concat([meal]),
+      review: null, photo: null, transcript: '', xp: s.xp + 20, screen: 'home',
+    }));
+  };
+
+  sendText = async (text) => {
+    const t = (text || '').trim();
+    if (!t || this.state.chatBusy) return;
+    const history = this.state.chat.concat([{ role: 'user', text: t }]);
+    this.setState({ chat: history, chatInput: '', chatBusy: true, chatCard: null });
+    const tot = this.totals();
+    const remaining = this.target() - tot.kcal;
+    try {
+      const j = await this.ask({
+        max_tokens: 900,
+        system: `あなたは日本語のカロリー管理コーチ。トーンはゲーム実況のように明るく楽しく、絵文字は使わない。ユーザーの1日の目標は${this.target()}kcal、現在の摂取は${tot.kcal}kcal、残り${remaining}kcal。返答はJSONのみ。`,
+        messages: history.map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text })).concat([
+          { role: 'user', content: `直前の発言に答えて。形式: {"reply":"120字以内の返答","record":null または {"name":"料理名","kcal":数値,"slot":"朝食|昼食|夕食|間食","items":[{"name":"","detail":"","kcal":0,"protein":0,"fat":0,"carbs":0,"salt":0,"sugar":0,"confidence":"mid"}]}}。ユーザーが食べたものを報告した/食べると決めた場合のみrecordを入れる。` },
+        ]),
+      });
+      this.setState(s => ({
+        chat: s.chat.concat([{ role: 'assistant', text: j.reply || '' }]),
+        chatCard: j.record || null, chatBusy: false,
+      }));
+    } catch (e) {
+      this.setState(s => ({ chat: s.chat.concat([{ role: 'assistant', text: '通信に失敗しました。もう一度送ってみてください。' }]), chatBusy: false }));
+    }
+  };
+
+  acceptCard = () => {
+    const c = this.state.chatCard;
+    if (!c) return;
+    const slot = SLOTS.includes(c.slot) ? c.slot : '夕食';
+    const items = (c.items && c.items.length) ? c.items : [{ name: c.name, detail: '1人前', kcal: c.kcal, confidence: 'mid' }];
+    this.setState(s => ({
+      meals: s.meals.filter(m => m.slot !== slot).concat([{ slot, items, time: new Date().toTimeString().slice(0, 5), source: 'チャット相談' }]),
+      chatCard: null, xp: s.xp + 20,
+      chat: s.chat.concat([{ role: 'assistant', text: `${slot}に記録したぞ。+20XP！` }]),
+    }));
+  };
+
+  runSearch = async () => {
+    const q = this.state.query.trim();
+    if (!q || this.state.searching) return;
+    this.setState({ searching: true });
+    try {
+      const j = await this.ask({
+        max_tokens: 900,
+        system: '日本の食品カロリーデータベース。JSONのみ返す。',
+        messages: [{ role: 'user', content: `「${q}」に該当する食品・料理の候補を4件。形式: {"items":[{"name":"","detail":"分量","kcal":0,"protein":0,"fat":0,"carbs":0,"salt":0,"sugar":0,"confidence":"high"}]}` }],
+      });
+      this.setState({ searchResults: j.items || [], searching: false });
+    } catch (e) { this.setState({ searchResults: [], searching: false }); }
+  };
+
+  addFood = (item) => {
+    const slot = this.state.slot;
+    this.setState(s => {
+      const rest = s.meals.filter(m => m.slot !== slot);
+      const cur = s.meals.find(m => m.slot === slot);
+      const items = (cur ? cur.items : []).concat([item]);
+      return { meals: rest.concat([{ slot, items, time: new Date().toTimeString().slice(0, 5), source: '手動追加' }]), screen: 'home', xp: s.xp + 10 };
+    });
+  };
+
+  openEdit = (slot) => {
+    const m = this.state.meals.find(x => x.slot === slot);
+    if (!m) return;
+    this.setState({ screen: 'edit', slot, edit: m.items.map(i => Object.assign({}, i)) });
+  };
+  patchEdit = (idx, key, val) => {
+    this.setState(st => ({ edit: st.edit.map((it, n) => n === idx ? Object.assign({}, it, { [key]: val }) : it) }));
+  };
+  saveEdit = () => {
+    const items = (this.state.edit || []).filter(i => (i.name || '').trim());
+    this.setState(st => ({
+      meals: items.length
+        ? st.meals.map(m => m.slot === st.slot ? Object.assign({}, m, { items, source: '編集済み' }) : m)
+        : st.meals.filter(m => m.slot !== st.slot),
+      edit: null, screen: 'home',
+    }));
+  };
+
+  renderVals() {
+    const s = this.state;
+    const target = this.target();
+    const tot = this.totals();
+    const remaining = Math.max(0, target - tot.kcal);
+    const pct = Math.min(100, Math.round((tot.kcal / target) * 100));
+    const level = Math.floor(s.xp / 100) + 1;
+    const cardBase = 'background:#fff;border-radius:22px;padding:15px 16px;display:flex;align-items:center;gap:13px;box-shadow:0 2px 12px rgba(23,21,15,0.05);cursor:pointer;';
+
+    const mealOf = (slot) => s.meals.find(m => m.slot === slot);
+    const kcalOf = (m) => m ? m.items.reduce((a, i) => a + (i.kcal || 0), 0) : 0;
+
+    const macro = (label, val, unit, goal, hue) => ({
+      label, val: `${Math.round(val)}${unit}`,
+      bar: { width: Math.min(100, (val / goal) * 100) + '%', height: '100%', borderRadius: 99, background: `oklch(0.64 0.13 ${hue})` },
+    });
+
+    const week = ['月', '火', '水', '木', '金', '土', '今日'];
+    const wk = [1840, 2120, 1660, 2380, 1930, 2460, tot.kcal];
+    const maxW = Math.max(target * 1.2, ...wk);
+
+    const conf = (c) => c === 'high' ? { t: '確度 高', bg: 'oklch(0.95 0.04 152)', fg: 'oklch(0.44 0.11 152)' }
+      : c === 'low' ? { t: '確度 低', bg: 'oklch(0.95 0.04 30)', fg: 'oklch(0.48 0.12 30)' }
+      : { t: '確度 中', bg: 'oklch(0.95 0.05 80)', fg: 'oklch(0.48 0.1 65)' };
+
+    const rItems = s.review ? s.review.items : [];
+    const rSum = (k) => rItems.reduce((a, i) => a + (i[k] || 0), 0);
+    const searchList = s.searchResults || [
+      { name: 'サラダチキン プレーン', detail: '1袋 110g', kcal: 114, protein: 24, fat: 1.5, carbs: 0.3, salt: 1.1, sugar: 0.3, confidence: 'high' },
+      { name: '納豆ごはん', detail: 'ごはん150g+納豆1P', kcal: 336, protein: 12, fat: 5, carbs: 60, salt: 0.8, sugar: 58, confidence: 'high' },
+      { name: 'おにぎり (鮭)', detail: '1個 110g', kcal: 180, protein: 5, fat: 1.4, carbs: 37, salt: 1.2, sugar: 36, confidence: 'high' },
+      { name: 'ブラックコーヒー', detail: 'Mサイズ', kcal: 8, protein: 0.3, fat: 0, carbs: 1.4, salt: 0, sugar: 0, confidence: 'high' },
+    ];
+
+    return {
+      isOnboard: s.screen === 'onboard',
+      isHome: s.screen === 'home', isPick: s.screen === 'pick', isVoice: s.screen === 'voice',
+      isReview: s.screen === 'review', isChat: s.screen === 'chat', isHistory: s.screen === 'history',
+      isSearch: s.screen === 'search', isEdit: s.screen === 'edit',
+
+      editSlot: s.slot,
+      editTotal: this.nf((s.edit || []).reduce((a, i) => a + (Number(i.kcal) || 0), 0)),
+      editItems: (s.edit || []).map((it, idx) => ({
+        name: it.name || '', detail: it.detail || '', kcal: it.kcal || 0,
+        setName: (e) => this.patchEdit(idx, 'name', e.target.value),
+        setDetail: (e) => this.patchEdit(idx, 'detail', e.target.value),
+        setKcal: (e) => this.patchEdit(idx, 'kcal', Number(e.target.value) || 0),
+        remove: () => this.setState(st => ({ edit: st.edit.filter((_, n) => n !== idx) })),
+      })),
+      addEditItem: () => this.setState(st => ({ edit: (st.edit || []).concat([{ name: '', detail: '', kcal: 0, confidence: 'mid' }]) })),
+      saveEdit: this.saveEdit,
+      cancelEdit: () => this.setState({ screen: 'home', edit: null }),
+      reRecord: () => this.setState({ screen: 'voice', edit: null, transcript: '', review: null }),
+      deleteMeal: () => this.setState(st => ({ meals: st.meals.filter(m => m.slot !== st.slot), edit: null, screen: 'home' })),
+      showChrome: ['home', 'pick', 'chat', 'history', 'search'].includes(s.screen),
+
+      // onboarding
+      wNow: s.wNow, wGoal: s.wGoal,
+      onWNow: (e) => this.setState({ wNow: Number(e.target.value) || 0 }),
+      onWGoal: (e) => this.setState({ wGoal: Number(e.target.value) || 0 }),
+      actLevels: ['ふつう', '活動的', 'よく動く'].map((label, i) => ({
+        label, pick: () => this.setState({ act: i }),
+        chip: {
+          flex: 1, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          borderRadius: 14, fontSize: 13, fontWeight: 500, cursor: 'pointer',
+          background: s.act === i ? GREEN : '#F6F2EA', color: s.act === i ? '#fff' : '#57524A',
+        },
+      })),
+      startApp: () => this.setState({ screen: 'home' }),
+
+      // chrome
+      level, xpLabel: `${s.xp % 100} / 100 XP`, streak: s.streak,
+      questLabel: s.meals.length >= 3 ? 'デイリークエスト達成！' : `デイリークエスト ${s.meals.length}/3食`,
+      xpBar: { width: (s.xp % 100) + '%', height: '100%', borderRadius: 99, background: GREEN, transition: 'width 0.4s' },
+
+      // home
+      target: this.nf(target), consumed: this.nf(tot.kcal), remaining: this.nf(remaining),
+      ring: {
+        width: 130, height: 130, borderRadius: '50%', flex: 'none', display: 'flex',
+        alignItems: 'center', justifyContent: 'center',
+        background: `conic-gradient(${GREEN} 0 ${pct}%, #EDE8DF 0)`,
+      },
+      macros: [
+        macro('たんぱく質', tot.p, 'g', target * 0.25 / 4, 152),
+        macro('脂質', tot.f, 'g', target * 0.25 / 9, 65),
+        macro('炭水化物', tot.c, 'g', target * 0.5 / 4, 240),
+      ],
+      saltLabel: `${tot.salt.toFixed(1)} / 7.5g`,
+      sugarLabel: `${Math.round(tot.sugar)}g`,
+      slotRows: SLOTS.map(slot => {
+        const m = mealOf(slot);
+        const k = kcalOf(m);
+        return {
+          short: SHORT[slot], hasPhoto: !!(m && m.photo),
+          photoStyle: { width: 44, height: 44, flex: 'none', borderRadius: 12, backgroundImage: m && m.photo ? `url(${m.photo})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' },
+          title: m ? m.items.map(i => i.name).join('、') : `${slot}を記録する`,
+          sub: m ? `${m.source} · ${m.time}` : 'タップして音声入力',
+          kcal: m ? this.nf(k) : '+',
+          kcalStyle: m ? { fontFamily: "'DM Mono', monospace", fontSize: 15 }
+            : { width: 28, height: 28, borderRadius: 99, background: GREEN, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, lineHeight: 1 },
+          card: m ? cardBase : cardBase.replace('background:#fff;', 'background:transparent;border:1.5px dashed #DCD5C9;').replace('box-shadow:0 2px 12px rgba(23,21,15,0.05);', ''),
+          badge: {
+            width: 38, height: 38, flex: 'none', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 12, background: m ? `oklch(0.94 0.04 ${HUE[slot]})` : '#EDE8DF', color: m ? `oklch(0.44 0.1 ${HUE[slot]})` : '#9A9184',
+          },
+          open: () => m ? this.openEdit(slot) : this.setState({ slot, screen: 'voice', transcript: '', review: null }),
+        };
+      }),
+      goPick: () => this.setState({ screen: 'pick' }),
+      goChat: () => this.setState({ screen: 'chat' }),
+      goSearch: () => this.setState({ screen: 'search' }),
+
+      // pick
+      slotCards: SLOTS.map(slot => {
+        const m = mealOf(slot);
+        const active = slot === s.slot;
+        return {
+          label: slot,
+          meta: m ? `記録済 ${this.nf(kcalOf(m))}kcal` : '未記録 · タップ',
+          metaStyle: { fontFamily: "'DM Mono', monospace", fontSize: 12, color: m ? 'oklch(0.5 0.11 152)' : (active ? 'rgba(255,255,255,0.85)' : '#9A9184') },
+          card: {
+            background: active ? GREEN : '#fff', color: active ? '#fff' : '#17150F',
+            borderRadius: 24, padding: '22px 18px', display: 'flex', flexDirection: 'column', gap: 10, cursor: 'pointer',
+            boxShadow: active ? `0 8px 22px oklch(0.62 0.15 152 / 0.3)` : '0 2px 12px rgba(23,21,15,0.05)',
+          },
+          icon: { width: 34, height: 34, borderRadius: 10, background: active ? 'rgba(255,255,255,0.3)' : `oklch(0.93 0.05 ${HUE[slot]})` },
+          pick: () => this.setState({ slot, screen: 'voice', transcript: '', review: null }),
+        };
+      }),
+
+      // voice
+      slotLabel: s.slot,
+      transcript: s.transcript,
+      onTranscript: (e) => this.setState({ transcript: e.target.value }),
+      needsTyping: !s.speechOK || (!s.listening && !s.transcript),
+      transcriptText: s.transcript || (s.listening ? '聞いています…' : 'マイクを押して話す、または下に入力'),
+      transcriptStyle: {
+        fontSize: s.transcript ? 21 : 16, lineHeight: 1.7, fontWeight: s.transcript ? 500 : 400,
+        color: s.transcript ? '#fff' : 'rgba(255,255,255,0.4)', textWrap: 'pretty',
+      },
+      micState: s.analyzing ? 'AI ANALYZING…' : s.listening ? 'LISTENING' : 'READY',
+      micHint: s.speechOK ? (s.listening ? 'もう一度押すと停止' : 'マイクを押して話す') : 'このブラウザは音声認識が使えません。入力欄をご利用ください',
+      listening: s.listening,
+      toggleMic: this.toggleMic,
+      micBtn: {
+        width: 76, height: 76, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        cursor: 'pointer', background: s.listening ? '#fff' : GREEN,
+        animation: s.listening ? 'pulse 1.6s infinite' : 'none',
+      },
+      micGlyph: s.listening
+        ? { width: 22, height: 22, borderRadius: 5, background: '#17150F' }
+        : { width: 18, height: 28, borderRadius: 99, background: '#fff' },
+      analyze: this.analyze,
+      analyzeLabel: s.analyzing ? 'AIが解析中…' : 'AIで解析する',
+      analyzeBtn: {
+        minHeight: 50, width: '100%', borderRadius: 99, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 15, fontWeight: 700, cursor: s.transcript ? 'pointer' : 'default',
+        background: s.transcript && !s.analyzing ? '#fff' : 'rgba(255,255,255,0.12)',
+        color: s.transcript && !s.analyzing ? '#17150F' : 'rgba(255,255,255,0.45)',
+      },
+
+      // review
+      reviewItems: rItems.map((i, idx) => {
+        const c = conf(i.confidence);
+        return {
+          name: i.name, detail: i.detail || '', kcal: this.nf(i.kcal || 0), conf: c.t,
+          confStyle: { fontSize: 10, padding: '3px 8px', borderRadius: 99, background: c.bg, color: c.fg, whiteSpace: 'nowrap' },
+          remove: () => this.setState(st => ({ review: Object.assign({}, st.review, { items: st.review.items.filter((_, n) => n !== idx) }) })),
+        };
+      }),
+      reviewTotal: this.nf(rSum('kcal')),
+      reviewP: `P ${Math.round(rSum('protein'))}g`,
+      reviewF: `F ${Math.round(rSum('fat'))}g`,
+      reviewC: `C ${Math.round(rSum('carbs'))}g`,
+      reviewSalt: `塩分 ${rSum('salt').toFixed(1)}g`,
+      reviewSugar: `糖質 ${Math.round(rSum('sugar'))}g`,
+      hasAdvice: !!(s.review && s.review.advice),
+      advice: s.review && s.review.advice,
+      hasPhoto: !!s.photo, noPhoto: !s.photo,
+      photoStyle: { width: 64, height: 64, flex: 'none', borderRadius: 16, backgroundImage: s.photo ? `url(${s.photo})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' },
+      onPhoto: (e) => {
+        const f = e.target.files && e.target.files[0];
+        if (!f) return;
+        const fr = new FileReader();
+        fr.onload = () => this.setState({ photo: fr.result });
+        fr.readAsDataURL(f);
+      },
+      commit: this.commit,
+      retry: () => this.setState({ screen: 'voice', review: null, transcript: '' }),
+
+      // chat
+      chatStatus: `残り ${this.nf(remaining)} kcal · Lv.${level}`,
+      chatRows: s.chat.map(m => ({
+        text: m.text,
+        bubble: m.role === 'user'
+          ? { alignSelf: 'flex-end', maxWidth: '80%', background: GREEN, color: '#fff', borderRadius: '20px 20px 6px 20px', padding: '13px 16px', fontSize: 14, lineHeight: 1.7 }
+          : { alignSelf: 'flex-start', maxWidth: '86%', background: '#fff', borderRadius: '20px 20px 20px 6px', padding: '13px 16px', fontSize: 14, lineHeight: 1.75, boxShadow: '0 2px 12px rgba(23,21,15,0.05)', textWrap: 'pretty' },
+      })),
+      chatBusy: s.chatBusy,
+      chatInput: s.chatInput,
+      onChatInput: (e) => this.setState({ chatInput: e.target.value }),
+      onChatKey: (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); this.sendText(s.chatInput); } },
+      sendChat: () => this.sendText(s.chatInput),
+      chatChips: ['今夜ラーメン食べても平気？', 'あと何食べたらPFC整う？', 'コンビニで買える高たんぱくおやつ'].map(label => ({
+        label, send: () => this.sendText(label),
+      })),
+      hasChatCard: !!s.chatCard,
+      chatCardName: s.chatCard && s.chatCard.name,
+      chatCardKcal: s.chatCard ? this.nf(s.chatCard.kcal || 0) : '',
+      chatCardSlot: s.chatCard && SLOTS.includes(s.chatCard.slot) ? s.chatCard.slot : '夕食',
+      acceptCard: this.acceptCard,
+      dismissCard: () => this.setState({ chatCard: null }),
+
+      // history
+      weekAvg: this.nf(wk.reduce((a, b) => a + b, 0) / wk.length),
+      week: week.map((label, i) => ({
+        label, kcal: wk[i] ? this.nf(wk[i]) : '—',
+        bar: {
+          width: '100%', height: Math.max(4, (wk[i] / maxW) * 100) + '%', borderRadius: 8,
+          background: wk[i] > target ? 'oklch(0.7 0.16 55)' : GREEN,
+          opacity: i === 6 ? 1 : 0.75,
+        },
+      })),
+      badges: [
+        { label: '3日連続記録', on: s.streak >= 3 }, { label: '音声で10食', on: false },
+        { label: 'PFC完璧な日', on: false }, { label: '塩分セーブ', on: true },
+        { label: '週間目標達成', on: false }, { label: 'Lv.5到達', on: level >= 5 },
+      ].map(b => ({
+        label: b.label,
+        card: {
+          background: b.on ? 'oklch(0.96 0.03 152)' : '#F6F2EA', borderRadius: 16, padding: '14px 8px',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+          color: b.on ? 'oklch(0.42 0.11 152)' : '#B8AFA0',
+        },
+        dot: { width: 26, height: 26, borderRadius: '50%', background: b.on ? GREEN : '#E1DACE' },
+      })),
+      logRows: s.meals.map(m => ({
+        slot: m.slot, kcal: this.nf(kcalOf(m)),
+        items: m.items.map(i => ({ name: i.name, kcal: this.nf(i.kcal || 0) })),
+      })),
+
+      // search
+      query: s.query,
+      onQuery: (e) => this.setState({ query: e.target.value }),
+      onQueryKey: (e) => { if (e.key === 'Enter') this.runSearch(); },
+      runSearch: this.runSearch,
+      searchHeading: s.searching ? '検索中…' : s.searchResults ? `「${s.query}」の候補` : 'よく食べるもの',
+      searchRows: searchList.map(r => ({
+        name: r.name, detail: r.detail || '', kcal: this.nf(r.kcal || 0),
+        add: () => this.addFood(r),
+      })),
+
+      // tabs
+      tabs: [
+        { label: '今日', key: 'home' }, { label: '記録', key: 'pick' },
+        { label: '相談', key: 'chat' }, { label: '記録簿', key: 'history' },
+      ].map(t => {
+        const on = s.screen === t.key || (t.key === 'pick' && s.screen === 'search');
+        return {
+          label: t.label, go: () => this.setState({ screen: t.key }),
+          dot: { width: 18, height: 18, borderRadius: t.key === 'chat' ? '6px 6px 6px 2px' : 6, background: on ? GREEN : '#D6CFC2' },
+          text: { fontSize: 10, fontWeight: on ? 700 : 400, color: on ? '#17150F' : '#9A9184' },
+        };
+      }),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

@@ -14,9 +14,7 @@ type Food = {
 };
 
 type FetchState =
-  | { phase: "loading" }
-  | { phase: "success"; data: Food[] }
-  | { phase: "error"; message: string };
+  { phase: "loading" } | { phase: "success"; data: Food[] } | { phase: "error"; message: string };
 
 const SOURCE_TYPE_LABEL: Record<string, string> = {
   official: "公的データ",
@@ -56,9 +54,7 @@ export default function FoodsPage() {
     <div className="flex flex-1 flex-col items-center bg-zinc-50 px-4 py-12 font-sans dark:bg-black">
       <main className="flex w-full max-w-3xl flex-col gap-6">
         <div className="flex items-baseline justify-between">
-          <h1 className="text-2xl font-semibold text-black dark:text-zinc-50">
-            食品マスタ
-          </h1>
+          <h1 className="text-2xl font-semibold text-black dark:text-zinc-50">食品マスタ</h1>
           <div className="flex items-center gap-4">
             <Link
               href="/"
@@ -80,21 +76,17 @@ export default function FoodsPage() {
         )}
 
         {state.phase === "error" && (
-          <p className="text-red-600 dark:text-red-400">
-            取得に失敗しました（{state.message}）
-          </p>
+          <p className="text-red-600 dark:text-red-400">取得に失敗しました（{state.message}）</p>
         )}
 
         {state.phase === "success" && state.data.length === 0 && (
-          <p className="text-zinc-500 dark:text-zinc-400">
-            食品データがありません。
-          </p>
+          <p className="text-zinc-500 dark:text-zinc-400">食品データがありません。</p>
         )}
 
         {state.phase === "success" && state.data.length > 0 && (
           <div className="overflow-x-auto rounded-2xl bg-white shadow-sm dark:bg-zinc-900">
             <table className="w-full text-left text-sm">
-              <thead className="border-b border-zinc-200 text-xs uppercase text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+              <thead className="border-b border-zinc-200 text-xs text-zinc-500 uppercase dark:border-zinc-800 dark:text-zinc-400">
                 <tr>
                   <th className="px-4 py-3">ID</th>
                   <th className="px-4 py-3">名前</th>
@@ -105,7 +97,7 @@ export default function FoodsPage() {
               <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
                 {state.data.map((food) => (
                   <tr key={food.id} className="text-zinc-800 dark:text-zinc-100">
-                    <td className="px-4 py-3 tabular-nums text-zinc-500 dark:text-zinc-400">
+                    <td className="px-4 py-3 text-zinc-500 tabular-nums dark:text-zinc-400">
                       {food.id}
                     </td>
                     <td className="px-4 py-3 font-medium">{food.name}</td>
@@ -123,9 +115,7 @@ export default function FoodsPage() {
         )}
 
         {state.phase === "success" && (
-          <p className="text-xs text-zinc-400 dark:text-zinc-500">
-            {state.data.length} 件
-          </p>
+          <p className="text-xs text-zinc-400 dark:text-zinc-500">{state.data.length} 件</p>
         )}
       </main>
     </div>

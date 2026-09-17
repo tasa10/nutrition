@@ -7,7 +7,7 @@ import (
 )
 
 func Migrate(db *gorm.DB) error {
-	if err := db.AutoMigrate(&model.Food{}); err != nil {
+	if err := db.AutoMigrate(&model.Food{}, &model.Profile{}, &model.Meal{}, &model.MealItem{}); err != nil {
 		return err
 	}
 	return seedFoods(db)
