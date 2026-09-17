@@ -12,6 +12,7 @@ import (
 	"gorm.io/gorm"
 
 	"nutrition/backend/internal/ai"
+	"nutrition/backend/internal/auth"
 	"nutrition/backend/internal/model"
 )
 
@@ -76,11 +77,12 @@ func (h *MealHandler) GetDay(c *echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "date must be YYYY-MM-DD")
 	}
 	ctx := c.Request().Context()
+	userID := auth.UserID(c)
 
 	var meals []model.Meal
 	if err := h.DB.WithContext(ctx).
 		Preload("Items", func(db *gorm.DB) *gorm.DB { return db.Order("position") }).
-		Where("date = ?", date).Order("id").Find(&meals).Error; err != nil {
+		Where("user_id = ? AND date = ?", userID, date).Order("id").Find(&meals).Error; err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to fetch meals")
 	}
 
@@ -98,7 +100,7 @@ func (h *MealHandler) GetDay(c *echo.Context) error {
 
 	target := 0
 	var p model.Profile
-	if err := h.DB.WithContext(ctx).First(&p).Error; err == nil {
+	if err := h.DB.WithContext(ctx).Where("user_id = ?", userID).First(&p).Error; err == nil {
 		target = p.TargetKcal()
 	}
 
@@ -155,10 +157,11 @@ func (h *MealHandler) Upsert(c *echo.Context) error {
 	}
 
 	ctx := c.Request().Context()
+	userID := auth.UserID(c)
 	var saved model.Meal
 	err := h.DB.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var meal model.Meal
-		err := tx.Where("date = ? AND slot = ?", date, slot).First(&meal).Error
+		err := tx.Where("user_id = ? AND date = ? AND slot = ?", userID, date, slot).First(&meal).Error
 		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return err
 		}
@@ -167,6 +170,7 @@ func (h *MealHandler) Upsert(c *echo.Context) error {
 				return err
 			}
 		}
+		meal.UserID = userID
 		meal.Date = date
 		meal.Slot = slot
 		meal.Source = source
@@ -194,7 +198,9 @@ func (h *MealHandler) Delete(c *echo.Context) error {
 	if !model.IsValidSlot(slot) {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid slot")
 	}
-	res := h.DB.WithContext(c.Request().Context()).Where("date = ? AND slot = ?", date, slot).Delete(&model.Meal{})
+	res := h.DB.WithContext(c.Request().Context()).
+		Where("user_id = ? AND date = ? AND slot = ?", auth.UserID(c), date, slot).
+		Delete(&model.Meal{})
 	if res.Error != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to delete meal")
 	}

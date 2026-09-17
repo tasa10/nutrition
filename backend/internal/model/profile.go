@@ -11,10 +11,11 @@ const (
 	ActivityHigh   = 2
 )
 
-// Profile holds the body data used to derive the daily calorie target.
-// Single-user for now; a user_id column arrives with authentication.
+// Profile holds the body data used to derive the daily calorie target. One per user.
+// default:1 backfills rows created before user_id existed; drop it once real auth is in.
 type Profile struct {
 	ID            uint      `gorm:"primaryKey" json:"id"`
+	UserID        uint      `gorm:"not null;default:1;uniqueIndex" json:"user_id"`
 	WeightNow     float64   `gorm:"not null" json:"weight_now"`
 	WeightGoal    float64   `gorm:"not null" json:"weight_goal"`
 	ActivityLevel int       `gorm:"not null" json:"activity_level"`
@@ -24,7 +25,6 @@ type Profile struct {
 
 // TargetKcal mirrors the prototype's heuristic: 22 kcal/kg × activity multiplier,
 // minus a 400 kcal deficit when aiming to lose weight, rounded to 10.
-// To be replaced by the 食事摂取基準 2025 formula once age/sex/height are collected.
 func (p Profile) TargetKcal() int {
 	mult := [...]float64{1.2, 1.45, 1.7}
 	i := p.ActivityLevel

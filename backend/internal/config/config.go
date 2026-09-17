@@ -1,6 +1,9 @@
 package config
 
-import "os"
+import (
+	"os"
+	"strconv"
+)
 
 type Config struct {
 	Port        string
@@ -12,6 +15,11 @@ type Config struct {
 	AIProvider string
 	AIAPIKey   string
 	AIModel    string
+
+	// AuthMode selects how requests are authenticated: "dev" (fixed user) for now,
+	// "firebase" once Firebase Auth is wired in.
+	AuthMode  string
+	DevUserID uint
 }
 
 func Load() Config {
@@ -22,6 +30,8 @@ func Load() Config {
 		AIProvider:  os.Getenv("AI_PROVIDER"),
 		AIAPIKey:    os.Getenv("AI_API_KEY"),
 		AIModel:     getEnv("AI_MODEL", "claude-opus-5"),
+		AuthMode:    getEnv("AUTH_MODE", "dev"),
+		DevUserID:   getEnvUint("DEV_USER_ID", 1),
 	}
 	if cfg.AIProvider == "" {
 		if cfg.AIAPIKey != "" {
@@ -38,4 +48,16 @@ func getEnv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+func getEnvUint(key string, fallback uint) uint {
+	v := os.Getenv(key)
+	if v == "" {
+		return fallback
+	}
+	n, err := strconv.ParseUint(v, 10, 32)
+	if err != nil {
+		return fallback
+	}
+	return uint(n)
 }

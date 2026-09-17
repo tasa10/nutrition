@@ -90,7 +90,8 @@ Claude Design で作成したモック `docs/mock/calorie-app-mock.dc.html`（�
 
 | メソッド | パス | 内容 |
 | --- | --- | --- |
-| GET | `/api/health` | 疎通確認（DB不通時は503） |
+| GET | `/api/health` | 疎通確認（DB不通時は503）。認証不要 |
+| GET | `/api/me` | 現在ログイン中のユーザー |
 | GET / PUT | `/api/profile` | プロフィール（`weight_now` / `weight_goal` / `activity_level` 0-2）と `target_kcal` |
 | POST | `/api/meals/analyze` | `{text}` → `{items[], advice}`（AIが料理ごとに栄養推定） |
 | GET | `/api/days/{YYYY-MM-DD}` | その日の `target_kcal` / `totals` / `meals[]` |
@@ -99,6 +100,18 @@ Claude Design で作成したモック `docs/mock/calorie-app-mock.dc.html`（�
 | GET / POST | `/api/foods` | 食品マスタ（旧） |
 
 起動時に GORM の AutoMigrate でテーブル（`profiles` / `meals` / `meal_items` / `foods`）を作成する（`backend/internal/db/migrate.go`）。
+
+## 認証（現在は開発用の自動ログイン）
+
+`users` テーブル（`id` / `firebase_uid` / `display_name`）を持ち、`profiles` と `meals` は `user_id` でユーザーごとに分かれている。
+`/api/health` 以外の API は `auth.Middleware` を通り、ハンドラは `auth.UserID(c)` で現在のユーザーを取得する。
+
+| 変数 | 値 |
+| --- | --- |
+| `AUTH_MODE` | `dev`（既定）: 全リクエストを `DEV_USER_ID` のユーザーとして扱う。起動時に ID 1 の開発ユーザー（`firebase_uid = dev-user-1`）を自動作成 |
+| `DEV_USER_ID` | 既定 `1` |
+
+Firebase Auth を入れるときは `internal/auth` に `Authenticator` の Firebase 実装（`Authorization: Bearer <IDトークン>` を検証 → `firebase_uid` でユーザーを検索／作成）を足し、`cmd/api/main.go` の `newAuthenticator` に `firebase` の分岐を追加する。ハンドラ側の変更は不要。フロントは `src/lib/api.ts` の `request` で `Authorization` ヘッダーを付ける。CORS は `Authorization` ヘッダーを許可済み。
 
 ## AI プロバイダー
 

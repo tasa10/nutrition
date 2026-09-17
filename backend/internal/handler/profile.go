@@ -7,6 +7,7 @@ import (
 	"github.com/labstack/echo/v5"
 	"gorm.io/gorm"
 
+	"nutrition/backend/internal/auth"
 	"nutrition/backend/internal/model"
 )
 
@@ -25,7 +26,7 @@ type profileResponse struct {
 
 func (h *ProfileHandler) Get(c *echo.Context) error {
 	var p model.Profile
-	err := h.DB.WithContext(c.Request().Context()).First(&p).Error
+	err := h.DB.WithContext(c.Request().Context()).Where("user_id = ?", auth.UserID(c)).First(&p).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return echo.NewHTTPError(http.StatusNotFound, "profile not set")
 	}
@@ -54,11 +55,13 @@ func (h *ProfileHandler) Put(c *echo.Context) error {
 	}
 
 	ctx := c.Request().Context()
+	userID := auth.UserID(c)
 	var p model.Profile
-	err := h.DB.WithContext(ctx).First(&p).Error
+	err := h.DB.WithContext(ctx).Where("user_id = ?", userID).First(&p).Error
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to fetch profile")
 	}
+	p.UserID = userID
 	p.WeightNow = req.WeightNow
 	p.WeightGoal = req.WeightGoal
 	p.ActivityLevel = req.ActivityLevel

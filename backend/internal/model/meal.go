@@ -26,12 +26,14 @@ const (
 	ConfidenceLow  = "low"
 )
 
-// Meal is one eating occasion: a single slot on a single day.
+// Meal is one eating occasion: a single slot on a single day for one user.
 // Nutrient values live on the items, as estimated by the AI at record time.
+// default:1 on user_id backfills rows created before users existed; drop it once real auth is in.
 type Meal struct {
 	ID         uint       `gorm:"primaryKey" json:"id"`
-	Date       string     `gorm:"size:10;not null;uniqueIndex:idx_meals_date_slot" json:"date"`
-	Slot       string     `gorm:"size:16;not null;uniqueIndex:idx_meals_date_slot" json:"slot"`
+	UserID     uint       `gorm:"not null;default:1;uniqueIndex:idx_meals_user_date_slot" json:"user_id"`
+	Date       string     `gorm:"size:10;not null;uniqueIndex:idx_meals_user_date_slot" json:"date"`
+	Slot       string     `gorm:"size:16;not null;uniqueIndex:idx_meals_user_date_slot" json:"slot"`
 	Source     string     `gorm:"size:32;not null" json:"source"`
 	RecordedAt time.Time  `json:"recorded_at"`
 	Items      []MealItem `gorm:"constraint:OnDelete:CASCADE" json:"items"`
