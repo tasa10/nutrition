@@ -1,0 +1,18 @@
+# Copy to terraform.tfvars (git-ignored) and fill in. VERCEL_API_TOKEN is read from the environment.
+
+# project_id = "nutrition-a20a8"
+# region     = "asia-northeast1"
+
+# AI provider used by the API (same values as .env locally).
+ai_provider = "gemini"
+ai_model    = ""
+ai_api_key  = "AQ.xxxxxxxx"
+
+# Firebase Console > Project settings > Your apps > Web app.
+firebase_web_api_key = "AIza..."
+firebase_auth_domain = "nutrition-a20a8.firebaseapp.com"
+firebase_app_id      = "1:1234567890:web:abcdef"
+
+# Vercel project name; the site is served at https://<name>.vercel.app unless frontend_url is set.
+vercel_project_name = "nutrition"
+# frontend_url      = "https://example.com"
