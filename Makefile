@@ -1,5 +1,6 @@
 .PHONY: up up-d build down down-v restart logs ps backend-sh frontend-sh db-sh clean env \
-	lint lint-back lint-front fmt fmt-back fmt-front
+	lint lint-back lint-front fmt fmt-back fmt-front \
+	tf-init tf-plan tf-apply tf-fmt tf-validate
 
 COMPOSE := docker compose
 
@@ -38,6 +39,25 @@ fmt-back: ## gofmt / goimports で整形
 
 fmt-front: ## prettier --write
 	$(NODE_RUN) npm run format
+
+# Terraform runs locally (needs gcloud ADC credentials); see infra/README.md.
+TF := terraform -chdir=infra
+
+tf-init: ## terraform init（GCS backend）
+	$(TF) init
+
+tf-plan: ## 変更内容の確認
+	$(TF) plan
+
+tf-apply: ## 適用（確認プロンプトあり）
+	$(TF) apply
+
+tf-fmt: ## HCL の整形
+	$(TF) fmt -recursive
+
+tf-validate: ## 構文チェック（認証不要）
+	$(TF) init -backend=false -input=false
+	$(TF) validate
 
 env: ## .env が無ければ .env.example からコピー
 	@$(ENV_INIT)

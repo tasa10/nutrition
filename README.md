@@ -49,6 +49,10 @@ docker compose up --build
 
 主なMakeターゲットは `Makefile` を参照（`backend-sh` / `frontend-sh` / `db-sh` でコンテナに入れる、`down-v` でボリュームごと削除、`clean` でローカルイメージも削除）。
 
+## デプロイ
+
+本番は GCP（Cloud Run + Cloud SQL）と Vercel に置き、すべて Terraform で管理する。手順と構成は [`infra/README.md`](infra/README.md) を参照。`backend/` を `main` に push すると GitHub Actions が Cloud Run にデプロイし、フロントは Vercel が自動ビルドする。
+
 ## Lint / フォーマット
 
 ローカルに Go / Node は不要。すべて公式 Docker イメージの中で実行する。
