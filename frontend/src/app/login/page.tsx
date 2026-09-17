@@ -79,11 +79,16 @@ export default function LoginPage() {
     <div className="flex flex-1 flex-col gap-[22px] px-6 pt-11 pb-9">
       <div className="flex flex-col gap-2">
         <div className="text-green-text font-mono text-xs tracking-[0.16em]">WELCOME</div>
-        <h1 className="text-[30px] leading-[1.3] font-black tracking-[-0.01em]">
-          しゃべるだけで
-          <br />
-          カロリー記録
+        <h1
+          className="font-display text-ink text-[64px] leading-none font-medium tracking-[-0.04em] italic"
+          style={{ fontVariationSettings: '"SOFT" 100, "opsz" 144' }}
+        >
+          nutrition
+          <span className="text-green not-italic">.</span>
         </h1>
+        <div className="text-faint font-mono text-[11px] tracking-[0.18em] uppercase">
+          Voice-first calorie coach
+        </div>
         <p className="text-muted text-sm leading-[1.8]">
           ログインすると、記録がアカウントに保存されます。
         </p>

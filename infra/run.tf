@@ -84,12 +84,14 @@ resource "google_cloud_run_v2_service" "api" {
         name  = "AI_MODEL"
         value = var.ai_model
       }
+      # Pinned to the exact version (not "latest") so that rotating a secret changes the template
+      # and rolls a new revision; secrets are only read at container start.
       env {
         name = "DATABASE_URL"
         value_source {
           secret_key_ref {
             secret  = google_secret_manager_secret.database_url.secret_id
-            version = "latest"
+            version = google_secret_manager_secret_version.database_url.version
           }
         }
       }
@@ -98,7 +100,7 @@ resource "google_cloud_run_v2_service" "api" {
         value_source {
           secret_key_ref {
             secret  = google_secret_manager_secret.ai_api_key.secret_id
-            version = "latest"
+            version = google_secret_manager_secret_version.ai_api_key.version
           }
         }
       }
