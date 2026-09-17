@@ -1,18 +1,11 @@
 "use client";
 
+import { Search } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import AppShell from "@/components/AppShell";
-import {
-  type Day,
-  SLOTS,
-  SLOT_HUE,
-  SLOT_LABEL,
-  getDay,
-  mealKcal,
-  nf,
-  todayISO,
-} from "@/lib/nutrition";
+import SlotIcon from "@/components/SlotIcon";
+import { type Day, SLOTS, SLOT_LABEL, getDay, mealKcal, nf, todayISO } from "@/lib/nutrition";
 
 export default function RecordPage() {
   const [day, setDay] = useState<Day | null>(null);
@@ -46,10 +39,7 @@ export default function RecordPage() {
                 href={`/record/input/?slot=${slot}`}
                 className="bg-card text-ink flex flex-col gap-2.5 rounded-3xl px-[18px] py-[22px] shadow-[0_2px_12px_rgba(23,21,15,0.05)]"
               >
-                <div
-                  className="h-[34px] w-[34px] rounded-[10px]"
-                  style={{ background: `oklch(0.93 0.05 ${SLOT_HUE[slot]})` }}
-                />
+                <SlotIcon slot={slot} size={34} />
                 <div className="text-lg font-bold">{SLOT_LABEL[slot]}</div>
                 <div className={`font-mono text-xs ${m ? "text-green-deep" : "text-faint"}`}>
                   {m ? `記録済 ${nf(mealKcal(m))}kcal` : "未記録 · タップ"}
@@ -66,8 +56,9 @@ export default function RecordPage() {
           </p>
           <Link
             href="/record/search/"
-            className="border-line flex min-h-11 items-center self-start rounded-full border px-5 text-[13px] font-medium"
+            className="border-line flex min-h-11 items-center gap-1.5 self-start rounded-full border px-5 text-[13px] font-medium"
           >
+            <Search size={15} aria-hidden />
             食品を検索
           </Link>
         </div>

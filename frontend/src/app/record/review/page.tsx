@@ -1,5 +1,6 @@
 "use client";
 
+import { Camera, RotateCcw, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -101,14 +102,17 @@ export default function ReviewPage() {
               >
                 {c.t}
               </div>
-              <div className="w-[42px] text-right font-mono text-sm">{nf(it.kcal)}</div>
+              <div className="w-[64px] text-right font-mono text-sm whitespace-nowrap">
+                {nf(it.kcal)}
+                <span className="text-faint text-[10px]"> kcal</span>
+              </div>
               <button
                 type="button"
                 onClick={() => removeItem(idx)}
-                className="bg-chip text-faint flex h-[30px] w-[30px] items-center justify-center rounded-full text-[15px] leading-none"
+                className="bg-chip text-faint flex h-[30px] w-[30px] items-center justify-center rounded-full"
                 aria-label="削除"
               >
-                ×
+                <X size={15} aria-hidden />
               </button>
             </div>
           );
@@ -132,7 +136,9 @@ export default function ReviewPage() {
             style={{ backgroundImage: `url(${photo})` }}
           />
         ) : (
-          <div className="h-16 w-16 flex-none rounded-2xl bg-[repeating-linear-gradient(45deg,#f2ede4,#f2ede4_6px,#eae3d7_6px,#eae3d7_12px)]" />
+          <div className="bg-chip text-faint flex h-16 w-16 flex-none items-center justify-center rounded-2xl">
+            <Camera size={24} aria-hidden />
+          </div>
         )}
         <div className="flex flex-1 flex-col gap-[3px]">
           <div className="text-[13px] font-medium">写真をつける</div>
@@ -172,8 +178,9 @@ export default function ReviewPage() {
         <Link
           href={`/record/input/?slot=${draft.slot}`}
           onClick={clearDraft}
-          className="border-line bg-card flex min-h-[46px] items-center justify-center rounded-full border text-sm"
+          className="border-line bg-card flex min-h-[46px] items-center justify-center gap-1.5 rounded-full border text-sm"
         >
+          <RotateCcw size={15} aria-hidden />
           言い直す
         </Link>
       </div>

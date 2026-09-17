@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowLeft, Mic, Plus, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
@@ -99,9 +100,10 @@ function EditScreen({ slot }: { slot: Slot }) {
       <div className="flex items-center gap-3">
         <Link
           href="/"
-          className="border-line bg-card text-ink flex h-11 w-11 flex-none items-center justify-center rounded-full border text-[17px] shadow-[0_2px_8px_rgba(23,21,15,0.06)]"
+          className="border-line bg-card text-ink flex h-11 w-11 flex-none items-center justify-center rounded-full border shadow-[0_2px_8px_rgba(23,21,15,0.06)]"
+          aria-label="戻る"
         >
-          ←
+          <ArrowLeft size={20} aria-hidden />
         </Link>
         <div className="flex flex-col gap-0.5">
           <h1 className="text-[22px] font-black">{SLOT_LABEL[slot]}を編集</h1>
@@ -128,10 +130,10 @@ function EditScreen({ slot }: { slot: Slot }) {
               <button
                 type="button"
                 onClick={() => setItems((xs) => xs.filter((_, n) => n !== idx))}
-                className="bg-chip text-faint flex h-11 w-11 flex-none items-center justify-center rounded-full text-base"
+                className="bg-chip text-faint flex h-11 w-11 flex-none items-center justify-center rounded-full"
                 aria-label="削除"
               >
-                ×
+                <X size={16} aria-hidden />
               </button>
             </div>
             <div className="flex items-center gap-2">
@@ -170,9 +172,10 @@ function EditScreen({ slot }: { slot: Slot }) {
               },
             ])
           }
-          className="text-muted flex min-h-11 items-center self-start rounded-full border-[1.5px] border-dashed border-[#dcd5c9] px-5 text-[13px] font-medium"
+          className="text-muted flex min-h-11 items-center gap-1.5 self-start rounded-full border-[1.5px] border-dashed border-[#dcd5c9] px-5 text-[13px] font-medium"
         >
-          + 品目を追加
+          <Plus size={15} aria-hidden />
+          品目を追加
         </button>
       </section>
 
@@ -190,16 +193,18 @@ function EditScreen({ slot }: { slot: Slot }) {
         <div className="flex gap-2.5">
           <Link
             href={`/record/input/?slot=${slot}`}
-            className="border-line bg-card flex min-h-[46px] flex-1 items-center justify-center rounded-full border text-sm"
+            className="border-line bg-card flex min-h-[46px] flex-1 items-center justify-center gap-1.5 rounded-full border text-sm"
           >
+            <Mic size={15} aria-hidden />
             音声で言い直す
           </Link>
           <button
             type="button"
             onClick={remove}
             disabled={busy}
-            className="border-rose-line bg-card text-rose-text flex min-h-[46px] flex-1 items-center justify-center rounded-full border text-sm disabled:opacity-40"
+            className="border-rose-line bg-card text-rose-text flex min-h-[46px] flex-1 items-center justify-center gap-1.5 rounded-full border text-sm disabled:opacity-40"
           >
+            <Trash2 size={15} aria-hidden />
             この記録を削除
           </button>
         </div>

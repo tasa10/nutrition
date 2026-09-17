@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowLeft, Plus, Search } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type KeyboardEvent, Suspense, useEffect, useState } from "react";
@@ -134,10 +135,10 @@ function SearchScreen({ initialSlot }: { initialSlot: Slot }) {
       <div className="flex items-center gap-3">
         <Link
           href="/record/"
-          className="border-line bg-card text-ink flex h-11 w-11 flex-none items-center justify-center rounded-full border text-[17px] shadow-[0_2px_8px_rgba(23,21,15,0.06)]"
+          className="border-line bg-card text-ink flex h-11 w-11 flex-none items-center justify-center rounded-full border shadow-[0_2px_8px_rgba(23,21,15,0.06)]"
           aria-label="戻る"
         >
-          ←
+          <ArrowLeft size={20} aria-hidden />
         </Link>
         <h1 className="text-[25px] font-black">食品をさがす</h1>
       </div>
@@ -155,8 +156,9 @@ function SearchScreen({ initialSlot }: { initialSlot: Slot }) {
           type="button"
           onClick={runSearch}
           disabled={searching || !query.trim()}
-          className="bg-green flex min-h-12 items-center rounded-2xl px-5 text-sm font-bold text-white disabled:opacity-40"
+          className="bg-green flex min-h-12 items-center gap-1.5 rounded-2xl px-5 text-sm font-bold text-white disabled:opacity-40"
         >
+          <Search size={16} aria-hidden />
           検索
         </button>
       </div>
@@ -194,7 +196,10 @@ function SearchScreen({ initialSlot }: { initialSlot: Slot }) {
               <div className="text-sm font-medium">{r.name}</div>
               <div className="text-faint text-[11px]">{r.detail}</div>
             </div>
-            <div className="font-mono text-sm">{nf(r.kcal)}</div>
+            <div className="font-mono text-sm">
+              {nf(r.kcal)}
+              <span className="text-faint text-[11px]"> kcal</span>
+            </div>
             <button
               type="button"
               onClick={() => add(r, idx)}
@@ -202,7 +207,7 @@ function SearchScreen({ initialSlot }: { initialSlot: Slot }) {
               className="bg-green-soft text-green-deep flex h-11 w-11 flex-none items-center justify-center rounded-full text-xl disabled:opacity-40"
               aria-label={`${r.name}を${SLOT_LABEL[slot]}に追加`}
             >
-              {adding === idx ? "…" : "+"}
+              {adding === idx ? "…" : <Plus size={20} aria-hidden />}
             </button>
           </div>
         ))}

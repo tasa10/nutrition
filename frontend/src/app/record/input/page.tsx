@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowLeft, Mic, Square } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState, useSyncExternalStore } from "react";
@@ -122,7 +123,6 @@ function InputScreen({ slot }: { slot: Slot }) {
     }
   }
 
-  const needsTyping = !speechOK || (!listening && !transcript);
   const canAnalyze = !!transcript.trim() && !analyzing;
 
   return (
@@ -130,9 +130,10 @@ function InputScreen({ slot }: { slot: Slot }) {
       <div className="flex items-center justify-between">
         <Link
           href="/record/"
-          className="flex h-11 w-11 flex-none items-center justify-center rounded-full border border-white/20 bg-white/10 text-[17px] text-white"
+          className="flex h-11 w-11 flex-none items-center justify-center rounded-full border border-white/20 bg-white/10 text-white"
+          aria-label="戻る"
         >
-          ←
+          <ArrowLeft size={20} aria-hidden />
         </Link>
         <div className="text-[13px] font-medium text-white/80">{SLOT_LABEL[slot]}を記録中</div>
       </div>
@@ -144,17 +145,24 @@ function InputScreen({ slot }: { slot: Slot }) {
         >
           {analyzing ? "AI ANALYZING…" : listening ? "LISTENING" : "READY"}
         </div>
-        <div
-          className={`leading-[1.7] ${transcript ? "text-[21px] font-medium text-white" : "text-base text-white/40"}`}
-        >
-          {transcript || (listening ? "聞いています…" : "マイクを押して話す、または下に入力")}
-        </div>
-        {needsTyping && (
+        {listening ? (
+          <div
+            className={`leading-[1.7] ${transcript ? "text-[21px] font-medium text-white" : "text-base text-white/40"}`}
+          >
+            {transcript || "聞いています…"}
+          </div>
+        ) : (
+          // Editable whenever the mic is off, so a recognised sentence can be corrected before analysis.
           <textarea
             value={transcript}
             onChange={(e) => setTranscript(e.target.value)}
-            placeholder="例：豚の生姜焼き定食、ごはん大盛り、味噌汁"
-            className="min-h-24 w-full resize-none rounded-[18px] border border-white/20 bg-white/[0.07] p-3.5 text-[15px] leading-[1.6] text-white outline-none placeholder:text-white/30"
+            placeholder={
+              speechOK
+                ? "マイクを押して話す、またはここに入力（例：豚の生姜焼き定食、ごはん大盛り、味噌汁）"
+                : "例：豚の生姜焼き定食、ごはん大盛り、味噌汁"
+            }
+            rows={4}
+            className="w-full resize-none rounded-[18px] border border-white/20 bg-white/[0.07] p-3.5 text-[17px] leading-[1.6] text-white outline-none placeholder:text-white/30"
           />
         )}
         {error && (
@@ -187,9 +195,9 @@ function InputScreen({ slot }: { slot: Slot }) {
           aria-label={listening ? "停止" : "マイク"}
         >
           {listening ? (
-            <div className="bg-night h-[22px] w-[22px] rounded-[5px]" />
+            <Square size={26} className="text-night fill-current" aria-hidden />
           ) : (
-            <div className="h-7 w-[18px] rounded-full bg-white" />
+            <Mic size={34} className="text-white" aria-hidden />
           )}
         </button>
         <div className="text-xs text-white/45">

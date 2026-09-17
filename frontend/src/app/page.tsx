@@ -3,15 +3,15 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Mic, Plus, Sparkles } from "lucide-react";
 import AppShell from "@/components/AppShell";
+import SlotIcon from "@/components/SlotIcon";
 import { ApiError } from "@/lib/api";
 import {
   type Day,
   type Slot,
   SLOTS,
-  SLOT_HUE,
   SLOT_LABEL,
-  SLOT_SHORT,
   SOURCE_LABEL,
   formatTime,
   getDay,
@@ -104,11 +104,17 @@ export default function HomePage() {
           <div className="flex flex-1 flex-col gap-3.5">
             <div className="flex flex-col gap-0.5">
               <div className="text-faint text-[11px]">摂取</div>
-              <div className="font-mono text-[21px]">{nf(tot.kcal)}</div>
+              <div className="font-mono text-[21px]">
+                {nf(tot.kcal)}
+                <span className="text-faint text-xs"> kcal</span>
+              </div>
             </div>
             <div className="flex flex-col gap-0.5">
               <div className="text-faint text-[11px]">目標</div>
-              <div className="font-mono text-[21px]">{nf(target)}</div>
+              <div className="font-mono text-[21px]">
+                {nf(target)}
+                <span className="text-faint text-xs"> kcal</span>
+              </div>
             </div>
           </div>
         </section>
@@ -159,19 +165,7 @@ export default function HomePage() {
                     : "border-[1.5px] border-dashed border-[#dcd5c9] bg-transparent"
                 }`}
               >
-                <div
-                  className="flex h-[38px] w-[38px] flex-none items-center justify-center rounded-xl text-xs"
-                  style={
-                    m
-                      ? {
-                          background: `oklch(0.94 0.04 ${SLOT_HUE[slot]})`,
-                          color: `oklch(0.44 0.1 ${SLOT_HUE[slot]})`,
-                        }
-                      : { background: "var(--color-track)", color: "var(--color-faint)" }
-                  }
-                >
-                  {SLOT_SHORT[slot]}
-                </div>
+                <SlotIcon slot={slot} active={!!m} />
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
                   <div className="text-sm font-medium">
                     {m ? m.items.map((i) => i.name).join("、") : `${SLOT_LABEL[slot]}を記録する`}
@@ -189,10 +183,13 @@ export default function HomePage() {
                   />
                 )}
                 {m ? (
-                  <div className="font-mono text-[15px]">{nf(mealKcal(m))}</div>
+                  <div className="font-mono text-[15px]">
+                    {nf(mealKcal(m))}
+                    <span className="text-faint text-[11px]"> kcal</span>
+                  </div>
                 ) : (
-                  <div className="bg-green flex h-7 w-7 items-center justify-center rounded-full text-base leading-none text-white">
-                    +
+                  <div className="bg-green flex h-7 w-7 items-center justify-center rounded-full text-white">
+                    <Plus size={16} aria-hidden />
                   </div>
                 )}
               </Link>
@@ -205,13 +202,14 @@ export default function HomePage() {
             href="/record/"
             className="bg-green flex min-h-[52px] flex-1 items-center justify-center gap-2 rounded-full text-[15px] font-bold text-white shadow-[0_8px_20px_oklch(0.62_0.15_152/0.28)]"
           >
-            <span className="inline-block h-[13px] w-[9px] rounded-full bg-white" />
+            <Mic size={18} aria-hidden />
             音声で記録
           </Link>
           <Link
             href="/chat/"
-            className="border-line bg-card flex min-h-[52px] flex-1 items-center justify-center rounded-full border text-[15px] font-bold"
+            className="border-line bg-card flex min-h-[52px] flex-1 items-center justify-center gap-2 rounded-full border text-[15px] font-bold"
           >
+            <Sparkles size={18} className="text-green" aria-hidden />
             AIに相談
           </Link>
         </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowUp, Bot, RotateCcw } from "lucide-react";
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import AppShell from "@/components/AppShell";
 import { ApiError } from "@/lib/api";
@@ -170,7 +171,9 @@ export default function ChatPage() {
     <AppShell refreshKey={refreshKey}>
       <main className="flex flex-1 flex-col gap-3 px-4 pt-4 pb-[120px]">
         <div className="border-track flex items-center gap-2.5 border-b pb-3">
-          <div className="bg-green h-[34px] w-[34px] rounded-full" />
+          <div className="bg-green flex h-[34px] w-[34px] items-center justify-center rounded-full text-white">
+            <Bot size={18} aria-hidden />
+          </div>
           <div className="flex flex-1 flex-col">
             <div className="text-sm font-bold">AIコーチ</div>
             <div className="text-green-text text-[11px]">{status}</div>
@@ -180,8 +183,9 @@ export default function ChatPage() {
               type="button"
               onClick={reset}
               disabled={busy}
-              className="text-faint hover:text-muted min-h-9 px-2 text-xs underline disabled:opacity-40"
+              className="text-faint hover:text-muted flex min-h-9 items-center gap-1 px-2 text-xs disabled:opacity-40"
             >
+              <RotateCcw size={13} aria-hidden />
               リセット
             </button>
           )}
@@ -237,14 +241,17 @@ export default function ChatPage() {
             <div className="text-faint text-xs">この内容で記録しますか？</div>
             <div className="flex items-baseline justify-between gap-2.5">
               <div className="text-sm font-bold">{card.name}</div>
-              <div className="font-mono text-xl">{nf(card.kcal)}</div>
+              <div className="font-mono text-xl">
+                {nf(card.kcal)}
+                <span className="text-faint text-xs"> kcal</span>
+              </div>
             </div>
             {card.items.length > 1 && (
               <div className="flex flex-col gap-1">
                 {card.items.map((it, i) => (
                   <div key={i} className="text-muted flex justify-between gap-2.5 text-xs">
                     <span>{it.name}</span>
-                    <span className="text-faint font-mono">{nf(it.kcal)}</span>
+                    <span className="text-faint font-mono">{nf(it.kcal)} kcal</span>
                   </div>
                 ))}
               </div>
@@ -300,7 +307,7 @@ export default function ChatPage() {
               className="bg-green flex h-12 w-12 flex-none items-center justify-center rounded-full text-lg text-white disabled:opacity-40"
               aria-label="送信"
             >
-              ↑
+              <ArrowUp size={20} aria-hidden />
             </button>
           </div>
         </div>

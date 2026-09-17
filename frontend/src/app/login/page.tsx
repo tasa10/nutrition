@@ -1,5 +1,6 @@
 "use client";
 
+import { UserRound } from "lucide-react";
 import Link from "next/link";
 import { type FormEvent, useState } from "react";
 import {
@@ -102,8 +103,9 @@ export default function LoginPage() {
         type="button"
         onClick={() => run(signInAsGuest)}
         disabled={busy}
-        className="bg-green flex min-h-[52px] items-center justify-center rounded-full text-[15px] font-bold text-white shadow-[0_8px_22px_oklch(0.62_0.15_152/0.3)] disabled:opacity-40"
+        className="bg-green flex min-h-[52px] items-center justify-center gap-2 rounded-full text-[15px] font-bold text-white shadow-[0_8px_22px_oklch(0.62_0.15_152/0.3)] disabled:opacity-40"
       >
+        <UserRound size={18} aria-hidden />
         ゲストとしてログイン
       </button>
       <p className="text-faint -mt-3 text-center text-[11px]">
