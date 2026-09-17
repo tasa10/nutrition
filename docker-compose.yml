@@ -23,6 +23,11 @@ services:
       PORT: 8080
       DATABASE_URL: postgres://${POSTGRES_USER:-nutrition}:${POSTGRES_PASSWORD:-nutrition}@db:5432/${POSTGRES_DB:-nutrition}?sslmode=disable
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      AUTH_MODE: ${AUTH_MODE:-dev}
+      DEV_USER_ID: ${DEV_USER_ID:-1}
+      AI_PROVIDER: ${AI_PROVIDER:-}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-}
     ports:
       - "8080:8080"
     depends_on:

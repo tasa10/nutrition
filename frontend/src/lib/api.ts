@@ -1,5 +1,4 @@
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
 export class ApiError extends Error {
   constructor(
@@ -21,19 +20,19 @@ async function handleResponse<T>(res: Response): Promise<T> {
     }
     throw new ApiError(res.status, message);
   }
+  if (res.status === 204) return undefined as T;
   return res.json();
 }
 
-export async function fetchJson<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_BASE_URL}${path}`);
-  return handleResponse<T>(res);
+function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  return fetch(`${API_BASE_URL}${path}`, {
+    method,
+    headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  }).then((res) => handleResponse<T>(res));
 }
 
-export async function postJson<T>(path: string, body: unknown): Promise<T> {
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  return handleResponse<T>(res);
-}
+export const fetchJson = <T>(path: string) => request<T>("GET", path);
+export const postJson = <T>(path: string, body: unknown) => request<T>("POST", path, body);
+export const putJson = <T>(path: string, body: unknown) => request<T>("PUT", path, body);
+export const deleteJson = (path: string) => request<void>("DELETE", path);
