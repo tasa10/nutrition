@@ -1,5 +1,6 @@
 "use client";
 
+import { Award } from "lucide-react";
 import { useEffect, useState } from "react";
 import AccountSection from "@/components/AccountSection";
 import AppShell from "@/components/AppShell";
@@ -69,7 +70,7 @@ function HistoryBody({ history, stats, day }: { history: History; stats: Stats; 
     <>
       <section className="bg-card flex flex-col gap-[18px] rounded-[26px] px-5 py-[22px] shadow-[0_2px_12px_rgba(23,21,15,0.05)]">
         <div className="flex items-baseline justify-between">
-          <div className="text-muted text-[13px] font-bold">この7日間</div>
+          <div className="text-muted text-[13px] font-bold">この7日間（kcal）</div>
           <div className="text-faint font-mono text-xs">
             平均 {recorded.length ? nf(avg) : "—"} kcal
           </div>
@@ -122,8 +123,10 @@ function HistoryBody({ history, stats, day }: { history: History; stats: Stats; 
               }`}
             >
               <div
-                className={`h-[26px] w-[26px] rounded-full ${b.earned ? "bg-green" : "bg-[#e1dace]"}`}
-              />
+                className={`flex h-[26px] w-[26px] items-center justify-center rounded-full text-white ${b.earned ? "bg-green" : "bg-[#e1dace]"}`}
+              >
+                <Award size={14} aria-hidden />
+              </div>
               <div className="text-center text-[11px] leading-[1.4] font-medium">{b.label}</div>
             </div>
           ))}
@@ -145,12 +148,15 @@ function HistoryBody({ history, stats, day }: { history: History; stats: Stats; 
             >
               <div className="flex items-baseline justify-between">
                 <div className="text-sm font-bold">{SLOT_LABEL[slot]}</div>
-                <div className="font-mono text-[15px]">{nf(mealKcal(m))}</div>
+                <div className="font-mono text-[15px]">
+                  {nf(mealKcal(m))}
+                  <span className="text-faint text-[11px]"> kcal</span>
+                </div>
               </div>
               {m.items.map((it, i) => (
                 <div key={i} className="text-muted flex justify-between gap-2.5 text-xs">
                   <span>{it.name}</span>
-                  <span className="text-faint font-mono">{nf(it.kcal)}</span>
+                  <span className="text-faint font-mono">{nf(it.kcal)} kcal</span>
                 </div>
               ))}
             </div>

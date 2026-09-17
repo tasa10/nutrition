@@ -1,5 +1,6 @@
 "use client";
 
+import { LogOut, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { authEnabled, getFirebaseAuth, signOut } from "@/lib/firebase";
@@ -24,6 +25,9 @@ export default function AccountSection() {
 
   return (
     <section className="bg-card flex items-center gap-3 rounded-3xl p-5 shadow-[0_2px_12px_rgba(23,21,15,0.05)]">
+      <div className="bg-chip text-muted flex h-10 w-10 flex-none items-center justify-center rounded-full">
+        <UserRound size={20} aria-hidden />
+      </div>
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <div className="text-muted text-[13px] font-bold">アカウント</div>
         <div className="truncate text-sm">{user.displayName || user.email || "ログイン中"}</div>
@@ -35,8 +39,9 @@ export default function AccountSection() {
         type="button"
         onClick={logout}
         disabled={busy}
-        className="border-line flex min-h-10 flex-none items-center rounded-full border px-4 text-[13px] disabled:opacity-40"
+        className="border-line flex min-h-10 flex-none items-center gap-1.5 rounded-full border px-4 text-[13px] disabled:opacity-40"
       >
+        <LogOut size={15} aria-hidden />
         ログアウト
       </button>
     </section>

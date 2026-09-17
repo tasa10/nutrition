@@ -1,5 +1,13 @@
 "use client";
 
+import {
+  ChartColumn,
+  Flame,
+  House,
+  type LucideIcon,
+  MessageCircle,
+  NotebookPen,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
@@ -11,11 +19,11 @@ type Props = {
   refreshKey?: number;
 };
 
-const TABS = [
-  { label: "今日", href: "/", match: ["/"] },
-  { label: "記録", href: "/record/", match: ["/record", "/record/search"] },
-  { label: "相談", href: "/chat/", match: ["/chat"] },
-  { label: "記録簿", href: "/history/", match: ["/history"] },
+const TABS: { label: string; href: string; match: string[]; icon: LucideIcon }[] = [
+  { label: "今日", href: "/", match: ["/"], icon: House },
+  { label: "記録", href: "/record/", match: ["/record", "/record/search"], icon: NotebookPen },
+  { label: "相談", href: "/chat/", match: ["/chat"], icon: MessageCircle },
+  { label: "記録簿", href: "/history/", match: ["/history"], icon: ChartColumn },
 ];
 
 export default function AppShell({ children, refreshKey = 0 }: Props) {
@@ -61,9 +69,9 @@ export default function AppShell({ children, refreshKey = 0 }: Props) {
             />
           </div>
         </div>
-        <div className="bg-amber-soft flex items-center gap-1 rounded-full px-[11px] py-1.5">
-          <div className="bg-amber h-2 w-2 rounded-full" />
-          <div className="text-amber-text font-mono text-xs">{streak}日</div>
+        <div className="bg-amber-soft text-amber-text flex items-center gap-1 rounded-full px-[11px] py-1.5">
+          <Flame size={13} className="text-amber" aria-hidden />
+          <div className="font-mono text-xs">{streak}日</div>
         </div>
       </header>
 
@@ -73,19 +81,22 @@ export default function AppShell({ children, refreshKey = 0 }: Props) {
         <div className="border-track bg-paper/95 pointer-events-auto flex w-full max-w-[440px] border-t px-2 pt-2 pb-[22px] backdrop-blur-xl">
           {TABS.map((t) => {
             const on = t.match.includes(current);
-            const dotShape = t.label === "相談" ? "rounded-[6px_6px_6px_2px]" : "rounded-md";
             return (
               <Link
                 key={t.label}
                 href={t.href}
-                className="flex min-h-12 flex-1 flex-col items-center justify-center gap-1.5"
+                aria-current={on ? "page" : undefined}
+                className={`flex min-h-12 flex-1 flex-col items-center justify-center gap-1 ${
+                  on ? "text-ink" : "text-faint"
+                }`}
               >
-                <div
-                  className={`h-[18px] w-[18px] ${dotShape} ${on ? "bg-green" : "bg-[#d6cfc2]"}`}
+                <t.icon
+                  size={22}
+                  strokeWidth={on ? 2.4 : 1.8}
+                  className={on ? "text-green" : "text-[#b8afa0]"}
+                  aria-hidden
                 />
-                <div className={`text-[10px] ${on ? "text-ink font-bold" : "text-faint"}`}>
-                  {t.label}
-                </div>
+                <div className={`text-[10px] ${on ? "font-bold" : ""}`}>{t.label}</div>
               </Link>
             );
           })}
