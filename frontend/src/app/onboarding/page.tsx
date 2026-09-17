@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import Wordmark from "@/components/Wordmark";
 import { nf, previewTarget, putProfile } from "@/lib/nutrition";
 
 const ACTIVITY = ["ふつう", "活動的", "よく動く"];
@@ -36,12 +37,7 @@ export default function OnboardingPage() {
   return (
     <div className="flex flex-1 flex-col gap-[22px] px-6 pt-11 pb-9">
       <div className="flex flex-col gap-2">
-        <div className="text-green-text font-mono text-xs tracking-[0.16em]">LV.1 スタート</div>
-        <h1 className="text-[30px] leading-[1.3] font-black tracking-[-0.01em]">
-          しゃべるだけで
-          <br />
-          カロリー記録
-        </h1>
+        <Wordmark eyebrow="LV.1 スタート" />
         <p className="text-muted text-sm leading-[1.8]">
           音声かチャットで伝えるだけ。AIが食材ごとに分解して、カロリー・PFC・塩分まで自動計算します。
         </p>
