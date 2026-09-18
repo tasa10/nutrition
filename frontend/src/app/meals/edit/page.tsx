@@ -1,9 +1,10 @@
 "use client";
 
-import { ArrowLeft, Mic, Plus, Trash2, X } from "lucide-react";
+import { ArrowLeft, Camera, Mic, Plus, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { toThumbnailDataURL } from "@/lib/image";
 import {
   type Meal,
   type MealItem,
@@ -26,6 +27,9 @@ function EditScreen({ slot, date }: { slot: Slot; date: string }) {
   const backHref = isToday ? "/" : `/history/?date=${date}`;
   const [meal, setMeal] = useState<Meal | null | undefined>(undefined);
   const [items, setItems] = useState<MealItem[]>([]);
+  // undefined: untouched, "": removed, data URL: replaced. Sent as-is so the API keeps / clears / swaps it.
+  const [photo, setPhoto] = useState<string | undefined>(undefined);
+  const [photoError, setPhotoError] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -62,12 +66,22 @@ function EditScreen({ slot, date }: { slot: Slot; date: string }) {
       if (kept.length === 0) {
         await deleteMeal(date, slot);
       } else {
-        await upsertMeal(date, slot, "edited", kept);
+        await upsertMeal(date, slot, "edited", kept, photo);
       }
       router.push(backHref);
     } catch (e) {
       setError(e instanceof Error ? e.message : "unknown error");
       setBusy(false);
+    }
+  }
+
+  async function pickPhoto(file: File | undefined) {
+    if (!file) return;
+    setPhotoError(false);
+    try {
+      setPhoto(await toThumbnailDataURL(file));
+    } catch {
+      setPhotoError(true);
     }
   }
 
@@ -102,6 +116,7 @@ function EditScreen({ slot, date }: { slot: Slot; date: string }) {
     );
   }
 
+  const shownPhoto = photo ?? meal.photo ?? "";
   const total = items.reduce((a, i) => a + (Number(i.kcal) || 0), 0);
   const field =
     "min-w-0 rounded-[13px] border border-line bg-field px-3 outline-none focus:border-green";
@@ -192,6 +207,57 @@ function EditScreen({ slot, date }: { slot: Slot; date: string }) {
         </button>
       </section>
 
+      <section className="bg-card flex items-center gap-3.5 rounded-[22px] p-4 shadow-[0_2px_12px_rgba(23,21,15,0.05)]">
+        {shownPhoto ? (
+          <div
+            className="h-16 w-16 flex-none rounded-2xl bg-cover bg-center"
+            style={{ backgroundImage: `url(${shownPhoto})` }}
+          />
+        ) : (
+          <div className="bg-chip text-faint flex h-16 w-16 flex-none items-center justify-center rounded-2xl">
+            <Camera size={24} aria-hidden />
+          </div>
+        )}
+        <div className="flex min-w-0 flex-1 flex-col gap-[3px]">
+          <div className="text-[13px] font-medium">写真</div>
+          <div className={`text-[11px] ${photoError ? "text-rose-text" : "text-faint"}`}>
+            {photoError
+              ? "画像を読み込めませんでした"
+              : photo !== undefined
+                ? "保存すると反映されます"
+                : shownPhoto
+                  ? "変更・削除できます"
+                  : "見た目も残すと記録簿が楽しい"}
+          </div>
+        </div>
+        {shownPhoto && (
+          <button
+            type="button"
+            onClick={() => {
+              setPhoto("");
+              setPhotoError(false);
+            }}
+            className="bg-chip text-faint flex h-10 w-10 flex-none items-center justify-center rounded-full"
+            aria-label="写真を削除"
+          >
+            <Trash2 size={15} aria-hidden />
+          </button>
+        )}
+        <label className="border-line flex min-h-10 flex-none cursor-pointer items-center rounded-full border px-4 text-[13px]">
+          {shownPhoto ? "変える" : "選ぶ"}
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => {
+              void pickPhoto(e.target.files?.[0]);
+              // Lets the same file be picked again after removing it.
+              e.target.value = "";
+            }}
+            className="hidden"
+          />
+        </label>
+      </section>
+
       {error && <p className="text-rose-text text-sm">失敗しました（{error}）</p>}
 
       <div className="mt-auto flex flex-col gap-2.5 pt-2.5">
@@ -210,7 +276,7 @@ function EditScreen({ slot, date }: { slot: Slot; date: string }) {
               className="border-line bg-card flex min-h-[46px] flex-1 items-center justify-center gap-1.5 rounded-full border text-sm"
             >
               <Mic size={15} aria-hidden />
-              音声で言い直す
+              音声で追加する
             </Link>
           )}
           <button

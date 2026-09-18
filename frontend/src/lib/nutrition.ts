@@ -215,16 +215,10 @@ export const upsertMeal = (
 export const deleteMeal = (date: string, slot: Slot) => deleteJson(`/api/meals/${date}/${slot}`);
 
 // Adds items to whatever is already recorded for the slot instead of replacing it.
-export async function appendToMeal(
-  date: string,
-  slot: Slot,
-  source: string,
-  items: MealItem[],
-  photo?: string,
-) {
+export async function appendToMeal(date: string, slot: Slot, source: string, items: MealItem[]) {
   const day = await getDay(date);
   const current = day.meals.find((m) => m.slot === slot);
-  return upsertMeal(date, slot, source, [...(current?.items ?? []), ...items], photo);
+  return upsertMeal(date, slot, source, [...(current?.items ?? []), ...items]);
 }
 
 export const getStats = (date: string) => fetchJson<Stats>(`/api/stats?date=${date}`);

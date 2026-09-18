@@ -1,11 +1,10 @@
 "use client";
 
-import { Camera, RotateCcw, X } from "lucide-react";
+import { RotateCcw, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { clearDraft, useDraft } from "@/lib/draft";
-import { toThumbnailDataURL } from "@/lib/image";
 import {
   type Confidence,
   type MealItem,
@@ -27,8 +26,6 @@ export default function ReviewPage() {
   const [edited, setEdited] = useState<MealItem[] | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [photo, setPhoto] = useState<string | null>(null);
-  const [photoError, setPhotoError] = useState(false);
 
   if (draft === undefined) return null;
   if (!draft) {
@@ -51,22 +48,12 @@ export default function ReviewPage() {
     setSaving(true);
     setError(null);
     try {
-      await appendToMeal(todayISO(), draft.slot, draft.source, items, photo ?? undefined);
+      await appendToMeal(todayISO(), draft.slot, draft.source, items);
       clearDraft();
       router.push("/");
     } catch (e) {
       setError(e instanceof Error ? e.message : "unknown error");
       setSaving(false);
-    }
-  }
-
-  async function pickPhoto(file: File | undefined) {
-    if (!file) return;
-    setPhotoError(false);
-    try {
-      setPhoto(await toThumbnailDataURL(file));
-    } catch {
-      setPhotoError(true);
     }
   }
 
@@ -77,7 +64,7 @@ export default function ReviewPage() {
       <div className="flex flex-col gap-1.5">
         <div className="text-green-text font-mono text-[11px] tracking-[0.14em]">AI ANALYSIS</div>
         <h1 className="text-2xl font-black">こう記録します</h1>
-        <p className="text-faint text-xs">ちがうものは削除、写真も足せます</p>
+        <p className="text-faint text-xs">ちがうものは削除できます。写真は今日の食事から足せます</p>
       </div>
 
       <section className="anim-pop bg-card flex flex-col gap-4 rounded-[26px] p-[22px] shadow-[0_2px_12px_rgba(23,21,15,0.05)]">
@@ -127,34 +114,6 @@ export default function ReviewPage() {
           <div className={chip}>塩分 {sum("salt").toFixed(1)}g</div>
           <div className={chip}>糖質 {Math.round(sum("sugar"))}g</div>
         </div>
-      </section>
-
-      <section className="bg-card flex items-center gap-3.5 rounded-[22px] p-4 shadow-[0_2px_12px_rgba(23,21,15,0.05)]">
-        {photo ? (
-          <div
-            className="h-16 w-16 flex-none rounded-2xl bg-cover bg-center"
-            style={{ backgroundImage: `url(${photo})` }}
-          />
-        ) : (
-          <div className="bg-chip text-faint flex h-16 w-16 flex-none items-center justify-center rounded-2xl">
-            <Camera size={24} aria-hidden />
-          </div>
-        )}
-        <div className="flex flex-1 flex-col gap-[3px]">
-          <div className="text-[13px] font-medium">写真をつける</div>
-          <div className={`text-[11px] ${photoError ? "text-rose-text" : "text-faint"}`}>
-            {photoError ? "画像を読み込めませんでした" : "見た目も残すと記録簿が楽しい"}
-          </div>
-        </div>
-        <label className="border-line flex min-h-10 cursor-pointer items-center rounded-full border px-4 text-[13px]">
-          {photo ? "変える" : "選ぶ"}
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => pickPhoto(e.target.files?.[0])}
-            className="hidden"
-          />
-        </label>
       </section>
 
       {draft.analysis.advice && (
