@@ -9,6 +9,7 @@ import {
   type Day,
   type RecordProposal,
   type Stats,
+  SLOTS,
   SLOT_LABEL,
   appendToMeal,
   blankItem,
@@ -256,6 +257,24 @@ export default function ChatPage() {
                 ))}
               </div>
             )}
+            {/* The coach's guess is preselected; the user can move the record to another slot. */}
+            <div className="flex gap-1.5" role="radiogroup" aria-label="食事の区分">
+              {SLOTS.map((slot) => (
+                <button
+                  key={slot}
+                  type="button"
+                  role="radio"
+                  aria-checked={card.slot === slot}
+                  onClick={() => setCard({ ...card, slot })}
+                  disabled={saving}
+                  className={`flex min-h-9 flex-1 items-center justify-center rounded-full text-xs font-medium ${
+                    card.slot === slot ? "bg-green text-white" : "bg-chip text-muted"
+                  }`}
+                >
+                  {SLOT_LABEL[slot]}
+                </button>
+              ))}
+            </div>
             <div className="flex gap-2">
               <button
                 type="button"
