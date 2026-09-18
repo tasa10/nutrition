@@ -10,9 +10,9 @@ import {
   type Confidence,
   type MealItem,
   SLOT_LABEL,
+  appendToMeal,
   nf,
   todayISO,
-  upsertMeal,
 } from "@/lib/nutrition";
 
 const CONF: Record<Confidence, { t: string; bg: string; fg: string }> = {
@@ -51,7 +51,7 @@ export default function ReviewPage() {
     setSaving(true);
     setError(null);
     try {
-      await upsertMeal(todayISO(), draft.slot, draft.source, items, photo ?? undefined);
+      await appendToMeal(todayISO(), draft.slot, draft.source, items, photo ?? undefined);
       clearDraft();
       router.push("/");
     } catch (e) {
