@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type KeyboardEvent, Suspense, useEffect, useState } from "react";
 import AppShell from "@/components/AppShell";
+import YenField from "@/components/YenField";
 import {
   type MealItem,
   type Slot,
@@ -14,6 +15,7 @@ import {
   getFrequentFoods,
   isSlot,
   nf,
+  parseYen,
   searchFoods,
   slotForNow,
   todayISO,
@@ -76,6 +78,7 @@ function SearchScreen({ initialSlot }: { initialSlot: Slot }) {
   const [searching, setSearching] = useState(false);
   const [frequent, setFrequent] = useState<MealItem[] | null>(null);
   const [adding, setAdding] = useState<number | null>(null);
+  const [cost, setCost] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -119,7 +122,7 @@ function SearchScreen({ initialSlot }: { initialSlot: Slot }) {
     setAdding(idx);
     setError(null);
     try {
-      await appendToMeal(todayISO(), slot, "manual", [item]);
+      await appendToMeal(todayISO(), slot, "manual", [item], parseYen(cost));
       router.push("/");
     } catch (e) {
       setError(e instanceof Error ? e.message : "unknown error");
@@ -178,6 +181,17 @@ function SearchScreen({ initialSlot }: { initialSlot: Slot }) {
             {SLOT_LABEL[s]}
           </button>
         ))}
+      </div>
+
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-faint text-xs">かかった金額（任意）。追加する食品に付きます</span>
+        <YenField
+          value={cost}
+          onChange={setCost}
+          ariaLabel="追加する食品にかかった金額（円）"
+          disabled={adding !== null}
+          className="w-[130px] flex-none"
+        />
       </div>
 
       {error && <p className="text-rose-text text-sm">失敗しました（{error}）</p>}

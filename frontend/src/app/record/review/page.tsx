@@ -4,6 +4,7 @@ import { RotateCcw, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import YenField from "@/components/YenField";
 import { clearDraft, useDraft } from "@/lib/draft";
 import {
   type Confidence,
@@ -11,6 +12,7 @@ import {
   SLOT_LABEL,
   appendToMeal,
   nf,
+  parseYen,
   todayISO,
 } from "@/lib/nutrition";
 
@@ -26,6 +28,7 @@ export default function ReviewPage() {
   const [edited, setEdited] = useState<MealItem[] | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cost, setCost] = useState("");
 
   if (draft === undefined) return null;
   if (!draft) {
@@ -48,7 +51,7 @@ export default function ReviewPage() {
     setSaving(true);
     setError(null);
     try {
-      await appendToMeal(todayISO(), draft.slot, draft.source, items);
+      await appendToMeal(todayISO(), draft.slot, draft.source, items, parseYen(cost));
       clearDraft();
       router.push("/");
     } catch (e) {
@@ -114,6 +117,20 @@ export default function ReviewPage() {
           <div className={chip}>塩分 {sum("salt").toFixed(1)}g</div>
           <div className={chip}>糖質 {Math.round(sum("sugar"))}g</div>
         </div>
+      </section>
+
+      <section className="bg-card shadow-card flex items-center gap-3.5 rounded-[22px] p-4">
+        <div className="flex min-w-0 flex-1 flex-col gap-[3px]">
+          <div className="text-[13px] font-medium">かかった金額</div>
+          <div className="text-faint text-[11px]">任意。あとから編集画面でも直せます</div>
+        </div>
+        <YenField
+          value={cost}
+          onChange={setCost}
+          ariaLabel="この食事にかかった金額（円）"
+          disabled={saving}
+          className="w-[130px] flex-none"
+        />
       </section>
 
       {draft.analysis.advice && (

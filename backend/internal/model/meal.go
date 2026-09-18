@@ -29,6 +29,9 @@ const (
 	ConfidenceLow  = "low"
 )
 
+// MaxYen bounds a single meal's cost and the monthly food budget.
+const MaxYen = 10_000_000
+
 // SourceManual marks items added by hand from search; it earns less XP than voice/chat records.
 const SourceManual = "manual"
 
@@ -36,12 +39,14 @@ const SourceManual = "manual"
 // Nutrient values live on the items, as estimated by the AI at record time.
 // default:1 on user_id backfills rows created before users existed; drop it once real auth is in.
 type Meal struct {
-	ID         uint       `gorm:"primaryKey" json:"id"`
-	UserID     uint       `gorm:"not null;default:1;uniqueIndex:idx_meals_user_date_slot" json:"user_id"`
-	Date       string     `gorm:"size:10;not null;uniqueIndex:idx_meals_user_date_slot" json:"date"`
-	Slot       string     `gorm:"size:16;not null;uniqueIndex:idx_meals_user_date_slot" json:"slot"`
-	Source     string     `gorm:"size:32;not null" json:"source"`
-	Photo      string     `gorm:"type:text" json:"photo,omitempty"`
+	ID     uint   `gorm:"primaryKey" json:"id"`
+	UserID uint   `gorm:"not null;default:1;uniqueIndex:idx_meals_user_date_slot" json:"user_id"`
+	Date   string `gorm:"size:10;not null;uniqueIndex:idx_meals_user_date_slot" json:"date"`
+	Slot   string `gorm:"size:16;not null;uniqueIndex:idx_meals_user_date_slot" json:"slot"`
+	Source string `gorm:"size:32;not null" json:"source"`
+	Photo  string `gorm:"type:text" json:"photo,omitempty"`
+	// Cost is what the whole meal cost in yen; 0 means not entered.
+	Cost       int        `gorm:"not null;default:0" json:"cost"`
 	RecordedAt time.Time  `json:"recorded_at"`
 	Items      []MealItem `gorm:"constraint:OnDelete:CASCADE" json:"items"`
 	CreatedAt  time.Time  `json:"created_at"`

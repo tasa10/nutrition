@@ -14,11 +14,13 @@ const (
 // Profile holds the body data used to derive the daily calorie target. One per user.
 // default:1 backfills rows created before user_id existed; drop it once real auth is in.
 type Profile struct {
-	ID            uint      `gorm:"primaryKey" json:"id"`
-	UserID        uint      `gorm:"not null;default:1;uniqueIndex" json:"user_id"`
-	WeightNow     float64   `gorm:"not null" json:"weight_now"`
-	WeightGoal    float64   `gorm:"not null" json:"weight_goal"`
-	ActivityLevel int       `gorm:"not null" json:"activity_level"`
+	ID            uint    `gorm:"primaryKey" json:"id"`
+	UserID        uint    `gorm:"not null;default:1;uniqueIndex" json:"user_id"`
+	WeightNow     float64 `gorm:"not null" json:"weight_now"`
+	WeightGoal    float64 `gorm:"not null" json:"weight_goal"`
+	ActivityLevel int     `gorm:"not null" json:"activity_level"`
+	// MonthlyBudget is the food budget per calendar month in yen; 0 means not set.
+	MonthlyBudget int       `gorm:"not null;default:0" json:"monthly_budget"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
 }

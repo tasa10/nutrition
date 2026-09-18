@@ -4,8 +4,9 @@ import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Wordmark from "@/components/Wordmark";
+import YenField from "@/components/YenField";
 import { authEnabled, signOut } from "@/lib/firebase";
-import { nf, previewTarget, putProfile } from "@/lib/nutrition";
+import { nf, parseYen, previewTarget, putProfile } from "@/lib/nutrition";
 
 const ACTIVITY = ["ふつう", "活動的", "よく動く"];
 
@@ -14,6 +15,7 @@ export default function OnboardingPage() {
   const [wNow, setWNow] = useState(68);
   const [wGoal, setWGoal] = useState(62);
   const [act, setAct] = useState(1);
+  const [budget, setBudget] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [leaving, setLeaving] = useState(false);
@@ -26,7 +28,12 @@ export default function OnboardingPage() {
     setSaving(true);
     setError(null);
     try {
-      await putProfile({ weight_now: wNow, weight_goal: wGoal, activity_level: act });
+      await putProfile({
+        weight_now: wNow,
+        weight_goal: wGoal,
+        activity_level: act,
+        monthly_budget: parseYen(budget),
+      });
       router.push("/");
     } catch (e) {
       setError(e instanceof Error ? e.message : "unknown error");
@@ -109,6 +116,20 @@ export default function OnboardingPage() {
               </button>
             ))}
           </div>
+        </div>
+        <div className="flex flex-col gap-2">
+          <span className="text-muted text-[13px] font-medium">
+            月の食費予算 (円){" "}
+            <span className="text-faint font-normal">任意・あとで変更できます</span>
+          </span>
+          <YenField
+            value={budget}
+            onChange={setBudget}
+            ariaLabel="月の食費予算（円）"
+            placeholder="45000"
+            disabled={saving}
+            size="lg"
+          />
         </div>
         <div className="border-line-soft flex items-center justify-between border-t pt-1">
           <span className="text-muted text-[13px]">1日の目標カロリー</span>

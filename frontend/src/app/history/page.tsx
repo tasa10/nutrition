@@ -17,29 +17,50 @@ import {
   SLOT_LABEL,
   SOURCE_LABEL,
   addDays,
+  addMonths,
+  daysInMonth,
   formatDateJP,
   formatMonthDay,
+  formatMonthJP,
   formatTime,
+  getBudget,
   getDay,
   getHistory,
   getStats,
   isISODate,
   mealKcal,
+  monthEnd,
+  monthOf,
   nf,
   todayISO,
   weekdayJP,
+  yen,
 } from "@/lib/nutrition";
 
-const WINDOW_DAYS = 7;
+const WEEK_DAYS = 7;
+
+type Metric = "kcal" | "cost";
+type Range = "week" | "month";
+
+const segment = (on: boolean, small = false) =>
+  `flex flex-1 items-center justify-center rounded-[11px] text-[13px] font-medium ${small ? "min-h-8" : "min-h-9"} ${
+    on ? "bg-surface text-ink shadow-[0_1px_4px_rgba(23,21,15,0.08)]" : "text-muted"
+  }`;
 
 function HistoryScreen({ initialDate }: { initialDate: string }) {
   const today = todayISO();
-  const [selected, setSelected] = useState(initialDate);
-  // Last day of the 7-day chart window; moves in whole weeks, never past today.
-  const [windowEnd, setWindowEnd] = useState(initialDate > today ? today : initialDate);
+  const start = initialDate > today ? today : initialDate;
+  const [metric, setMetric] = useState<Metric>("kcal");
+  const [range, setRange] = useState<Range>("week");
+  const [selected, setSelected] = useState(start);
+  // Week view: last day of the 7-day window; moves in whole weeks, never past today.
+  const [windowEnd, setWindowEnd] = useState(start);
+  // Month view: the calendar month shown, never past the current month.
+  const [month, setMonth] = useState(monthOf(start));
   const [history, setHistory] = useState<History | null>(null);
   const [day, setDay] = useState<Day | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
+  const [monthlyBudget, setMonthlyBudget] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -49,14 +70,22 @@ function HistoryScreen({ initialDate }: { initialDate: string }) {
         if (!cancelled) setStats(s);
       })
       .catch(() => {});
+    getBudget(monthOf(today))
+      .then((b) => {
+        if (!cancelled) setMonthlyBudget(b.monthly_budget);
+      })
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
   }, [today]);
 
+  const chartTo = range === "week" ? windowEnd : monthEnd(month);
+  const chartDays = range === "week" ? WEEK_DAYS : daysInMonth(month);
+
   useEffect(() => {
     let cancelled = false;
-    getHistory(windowEnd, WINDOW_DAYS)
+    getHistory(chartTo, chartDays)
       .then((h) => {
         if (!cancelled) setHistory(h);
       })
@@ -66,7 +95,7 @@ function HistoryScreen({ initialDate }: { initialDate: string }) {
     return () => {
       cancelled = true;
     };
-  }, [windowEnd]);
+  }, [chartTo, chartDays]);
 
   useEffect(() => {
     let cancelled = false;
@@ -82,24 +111,65 @@ function HistoryScreen({ initialDate }: { initialDate: string }) {
     };
   }, [selected]);
 
-  function shiftWindow(weeks: number) {
-    const next = addDays(windowEnd, weeks * WINDOW_DAYS);
-    const end = next > today ? today : next;
-    setWindowEnd(end);
-    setSelected(end);
+  function shift(step: number) {
+    if (range === "week") {
+      const next = addDays(windowEnd, step * WEEK_DAYS);
+      const end = next > today ? today : next;
+      setWindowEnd(end);
+      setSelected(end);
+      return;
+    }
+    const next = addMonths(month, step);
+    if (next > monthOf(today)) return;
+    setMonth(next);
+    setSelected(next === monthOf(today) ? today : monthEnd(next));
+  }
+
+  // Keeps the selected day in view when switching between the week and the month chart.
+  function changeRange(next: Range) {
+    if (next === range) return;
+    if (next === "month") setMonth(monthOf(selected));
+    else setWindowEnd(selected);
+    setRange(next);
   }
 
   function jumpToToday() {
     setWindowEnd(today);
+    setMonth(monthOf(today));
     setSelected(today);
   }
 
-  const windowStart = addDays(windowEnd, -(WINDOW_DAYS - 1));
-  const canGoForward = windowEnd < today;
-  const target = history?.target_kcal ?? 0;
-  const recorded = history?.days.filter((d) => d.meals > 0) ?? [];
-  const avg = recorded.length ? recorded.reduce((a, d) => a + d.kcal, 0) / recorded.length : 0;
-  const maxKcal = Math.max(target * 1.2, ...(history?.days.map((d) => d.kcal) ?? []), 1);
+  const canGoForward = range === "week" ? windowEnd < today : month < monthOf(today);
+  const rangeLabel =
+    range === "week"
+      ? `${formatMonthDay(addDays(windowEnd, -(WEEK_DAYS - 1)))} – ${formatMonthDay(windowEnd)}`
+      : formatMonthJP(month);
+
+  const days = history?.days ?? [];
+  const isCost = metric === "cost";
+  const valueOf = (d: { kcal: number; cost: number }) => (isCost ? d.cost : d.kcal);
+  // Calories compare against the daily target; spending against an even daily share of the budget.
+  const dailyLimit = isCost
+    ? monthlyBudget > 0
+      ? monthlyBudget / daysInMonth(range === "month" ? month : monthOf(selected))
+      : 0
+    : (history?.target_kcal ?? 0);
+  const maxValue = Math.max(dailyLimit * 1.2, ...days.map(valueOf), 1);
+
+  const recorded = days.filter((d) => d.meals > 0);
+  const avgKcal = recorded.length ? recorded.reduce((a, d) => a + d.kcal, 0) / recorded.length : 0;
+  const totalCost = days.reduce((a, d) => a + d.cost, 0);
+  const elapsedDays = days.filter((d) => d.date <= today).length;
+  const summary = isCost
+    ? `合計 ${yen(totalCost)} · 1日平均 ${yen(totalCost / Math.max(1, elapsedDays))}`
+    : `平均 ${recorded.length ? nf(avgKcal) : "—"} kcal`;
+  const budgetNote =
+    isCost && range === "month" && monthlyBudget > 0
+      ? `予算 ${yen(monthlyBudget)} の ${Math.round((totalCost / monthlyBudget) * 100)}%`
+      : null;
+
+  const compact = range === "month";
+  const dayCost = day ? day.meals.reduce((a, m) => a + m.cost, 0) : 0;
 
   return (
     <main className="flex flex-1 flex-col gap-[18px] px-[18px] pt-[22px] pb-[120px]">
@@ -118,77 +188,162 @@ function HistoryScreen({ initialDate }: { initialDate: string }) {
 
       {error && <p className="text-rose-text text-sm">データを取得できませんでした（{error}）</p>}
 
-      <section className="bg-card shadow-card flex flex-col gap-[18px] rounded-[26px] px-5 py-[22px]">
+      <section className="bg-card shadow-card flex flex-col gap-4 rounded-[26px] px-5 py-5">
+        <div className="bg-chip flex rounded-[14px] p-1" role="tablist" aria-label="グラフの内容">
+          {(
+            [
+              ["kcal", "カロリー"],
+              ["cost", "食費"],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={metric === key}
+              onClick={() => setMetric(key)}
+              className={segment(metric === key)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
         <div className="flex items-center justify-between gap-2">
           <button
             type="button"
-            onClick={() => shiftWindow(-1)}
-            className="bg-chip text-muted flex h-9 w-9 items-center justify-center rounded-full"
-            aria-label="前の7日間"
+            onClick={() => shift(-1)}
+            className="bg-chip text-muted flex h-9 w-9 flex-none items-center justify-center rounded-full"
+            aria-label={range === "week" ? "前の7日間" : "前の月"}
           >
             <ChevronLeft size={18} aria-hidden />
           </button>
-          <div className="flex flex-col items-center">
+          <div className="flex min-w-0 flex-col items-center text-center">
             <div className="text-muted text-[13px] font-bold">
-              {formatMonthDay(windowStart)} – {formatMonthDay(windowEnd)}（kcal）
+              {rangeLabel}（{isCost ? "円" : "kcal"}）
             </div>
-            <div className="text-faint font-mono text-xs">
-              平均 {recorded.length ? nf(avg) : "—"} kcal
-            </div>
+            <div className="text-faint font-mono text-xs">{summary}</div>
+            {budgetNote && <div className="text-amber-text font-mono text-xs">{budgetNote}</div>}
           </div>
           <button
             type="button"
-            onClick={() => shiftWindow(1)}
+            onClick={() => shift(1)}
             disabled={!canGoForward}
-            className="bg-chip text-muted flex h-9 w-9 items-center justify-center rounded-full disabled:opacity-30"
-            aria-label="次の7日間"
+            className="bg-chip text-muted flex h-9 w-9 flex-none items-center justify-center rounded-full disabled:opacity-30"
+            aria-label={range === "week" ? "次の7日間" : "次の月"}
           >
             <ChevronRight size={18} aria-hidden />
           </button>
         </div>
 
-        <div className="flex h-[150px] items-end gap-2">
-          {(history?.days ?? []).map((d) => {
-            const over = target > 0 && d.kcal > target;
+        <div className={`flex h-[150px] items-end ${compact ? "gap-[3px]" : "gap-2"}`}>
+          {days.map((d) => {
+            const value = valueOf(d);
+            const has = isCost ? d.cost > 0 : d.meals > 0;
+            const over = dailyLimit > 0 && value > dailyLimit;
             const isSelected = d.date === selected;
+            const future = d.date > today;
+            const dom = Number(d.date.slice(8, 10));
+            const shown = has ? (isCost ? yen(value) : `${nf(value)} kcal`) : "記録なし";
             return (
               <button
                 key={d.date}
                 type="button"
                 onClick={() => setSelected(d.date)}
+                disabled={future}
                 aria-pressed={isSelected}
-                aria-label={`${formatDateJP(d.date)} ${d.meals > 0 ? `${nf(d.kcal)} kcal` : "記録なし"}`}
-                className="flex h-full flex-1 flex-col items-center justify-end gap-2"
+                aria-label={`${formatDateJP(d.date)} ${shown}`}
+                className={`flex h-full min-w-0 flex-1 flex-col items-center justify-end ${
+                  compact ? "gap-1.5" : "gap-2"
+                }`}
               >
-                <div className={`font-mono text-[10px] ${isSelected ? "text-ink" : "text-faint"}`}>
-                  {d.meals > 0 ? nf(d.kcal) : "—"}
-                </div>
+                {!compact && (
+                  <div
+                    className={`font-mono text-[10px] ${isSelected ? "text-ink" : "text-faint"}`}
+                  >
+                    {has ? nf(value) : "—"}
+                  </div>
+                )}
                 <div
-                  className={`w-full rounded-lg ${over ? "bg-amber" : "bg-green"} ${
-                    isSelected ? "shadow-[0_0_0_1px_#fff,0_0_0_3px_rgba(23,21,15,0.7)]" : ""
+                  className={`w-full ${compact ? "rounded-[3px]" : "rounded-lg"} ${
+                    over ? (isCost ? "bg-rose-text" : "bg-amber") : isCost ? "bg-amber" : "bg-green"
+                  } ${
+                    isSelected
+                      ? compact
+                        ? "shadow-[0_0_0_1px_#fff,0_0_0_2px_rgba(23,21,15,0.7)]"
+                        : "shadow-[0_0_0_1px_#fff,0_0_0_3px_rgba(23,21,15,0.7)]"
+                      : ""
                   }`}
                   style={{
-                    height: `${Math.max(4, (d.kcal / maxKcal) * 100)}%`,
-                    opacity: d.meals === 0 ? 0.2 : isSelected ? 1 : 0.6,
+                    height: `${Math.max(compact ? 2 : 4, (value / maxValue) * 100)}%`,
+                    opacity: !has ? 0.2 : isSelected ? 1 : 0.6,
                   }}
                 />
-                <div className={`text-[11px] ${isSelected ? "text-ink font-bold" : "text-faint"}`}>
-                  {d.date === today ? "今日" : weekdayJP(d.date)}
-                </div>
+                {compact ? (
+                  // Thirty labels do not fit; mark the 1st and every 5th day.
+                  <div
+                    className={`h-3 text-[9px] ${isSelected ? "text-ink font-bold" : "text-faint"}`}
+                  >
+                    {dom === 1 || dom % 5 === 0 || isSelected ? dom : ""}
+                  </div>
+                ) : (
+                  <div
+                    className={`text-[11px] ${isSelected ? "text-ink font-bold" : "text-faint"}`}
+                  >
+                    {d.date === today ? "今日" : weekdayJP(d.date)}
+                  </div>
+                )}
               </button>
             );
           })}
         </div>
-        <div className="text-faint flex gap-3.5 text-[11px]">
-          <div className="flex items-center gap-[5px]">
-            <span className="bg-green inline-block h-[9px] w-[9px] rounded-[3px]" />
-            目標内
+
+        <div className="flex items-center gap-3">
+          <div className="text-faint flex flex-1 flex-wrap gap-x-3.5 gap-y-1 text-[11px]">
+            {isCost ? (
+              <>
+                <div className="flex items-center gap-[5px]">
+                  <span className="bg-amber inline-block h-[9px] w-[9px] rounded-[3px]" />
+                  食費
+                </div>
+                {monthlyBudget > 0 && (
+                  <div className="flex items-center gap-[5px]">
+                    <span className="bg-rose-text inline-block h-[9px] w-[9px] rounded-[3px]" />
+                    1日の目安（{yen(dailyLimit)}）超え
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-[5px]">
+                  <span className="bg-green inline-block h-[9px] w-[9px] rounded-[3px]" />
+                  目標内
+                </div>
+                <div className="flex items-center gap-[5px]">
+                  <span className="bg-amber inline-block h-[9px] w-[9px] rounded-[3px]" />
+                  超過
+                </div>
+              </>
+            )}
           </div>
-          <div className="flex items-center gap-[5px]">
-            <span className="bg-amber inline-block h-[9px] w-[9px] rounded-[3px]" />
-            超過
+          <div className="bg-chip flex w-[92px] flex-none rounded-[14px] p-1" aria-label="期間">
+            {(
+              [
+                ["week", "週"],
+                ["month", "月"],
+              ] as const
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                aria-pressed={range === key}
+                onClick={() => changeRange(key)}
+                className={segment(range === key, true)}
+              >
+                {label}
+              </button>
+            ))}
           </div>
-          <div className="ml-auto">棒をタップで日を選択</div>
         </div>
       </section>
 
@@ -199,8 +354,9 @@ function HistoryScreen({ initialDate }: { initialDate: string }) {
           </div>
           {day && day.meals.length > 0 && (
             <div className="text-faint font-mono text-xs">
-              {nf(day.totals.kcal)}
-              {day.target_kcal > 0 ? ` / ${nf(day.target_kcal)}` : ""} kcal
+              {isCost
+                ? yen(dayCost)
+                : `${nf(day.totals.kcal)}${day.target_kcal > 0 ? ` / ${nf(day.target_kcal)}` : ""} kcal`}
             </div>
           )}
         </div>
@@ -232,9 +388,14 @@ function HistoryScreen({ initialDate }: { initialDate: string }) {
                       style={{ backgroundImage: `url(${m.photo})` }}
                     />
                   )}
-                  <div className="font-mono text-[15px]">
-                    {nf(mealKcal(m))}
-                    <span className="text-faint text-[11px]"> kcal</span>
+                  <div className="flex flex-col items-end">
+                    <div className="font-mono text-[15px]">
+                      {nf(mealKcal(m))}
+                      <span className="text-faint text-[11px]"> kcal</span>
+                    </div>
+                    <div className="text-amber-text font-mono text-xs">
+                      {m.cost > 0 ? yen(m.cost) : "¥ —"}
+                    </div>
                   </div>
                 </div>
                 {m.items.map((it, i) => (

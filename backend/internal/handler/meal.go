@@ -75,6 +75,8 @@ type upsertMealRequest struct {
 	Items  []ai.Item `json:"items"`
 	// Photo: omitted keeps the current photo, "" removes it, a data URL replaces it.
 	Photo *string `json:"photo"`
+	// Cost in yen: omitted keeps the current amount, a value replaces it.
+	Cost *int `json:"cost"`
 }
 
 func validPhoto(p string) bool {
@@ -114,6 +116,9 @@ func (h *MealHandler) Upsert(c *echo.Context) error {
 	}
 	if req.Photo != nil && !validPhoto(*req.Photo) {
 		return echo.NewHTTPError(http.StatusBadRequest, "photo must be a JPEG/PNG/WebP data URL under 700KB")
+	}
+	if req.Cost != nil && (*req.Cost < 0 || *req.Cost > model.MaxYen) {
+		return echo.NewHTTPError(http.StatusBadRequest, "cost must be between 0 and 10000000")
 	}
 	items := make([]model.MealItem, 0, len(req.Items))
 	for i, it := range req.Items {
@@ -156,6 +161,9 @@ func (h *MealHandler) Upsert(c *echo.Context) error {
 		meal.Source = source
 		if req.Photo != nil {
 			meal.Photo = *req.Photo
+		}
+		if req.Cost != nil {
+			meal.Cost = *req.Cost
 		}
 		meal.RecordedAt = time.Now()
 		meal.Items = items
