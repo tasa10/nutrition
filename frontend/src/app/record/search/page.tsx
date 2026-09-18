@@ -135,12 +135,13 @@ function SearchScreen({ initialSlot }: { initialSlot: Slot }) {
       <div className="flex items-center gap-3">
         <Link
           href="/record/"
-          className="border-line bg-card text-ink flex h-11 w-11 flex-none items-center justify-center rounded-full border shadow-[0_2px_8px_rgba(23,21,15,0.06)]"
+          className="bg-surface text-ink shadow-card flex h-11 w-11 flex-none items-center justify-center rounded-full"
           aria-label="戻る"
         >
           <ArrowLeft size={20} aria-hidden />
         </Link>
-        <h1 className="text-[25px] font-black">食品をさがす</h1>
+        {/* Right padding mirrors the back button so the title sits on the screen's centre line. */}
+        <h1 className="flex-1 pr-11 text-center text-[25px] font-black">食品をさがす</h1>
       </div>
 
       <div className="flex gap-2">
@@ -150,7 +151,7 @@ function SearchScreen({ initialSlot }: { initialSlot: Slot }) {
           onKeyDown={onKeyDown}
           placeholder="例：サラダチキン"
           maxLength={100}
-          className="border-line bg-card text-ink focus:border-green min-h-12 min-w-0 flex-1 rounded-2xl border px-3.5 text-[15px] outline-none"
+          className="border-line bg-surface text-ink focus:border-green min-h-12 min-w-0 flex-1 rounded-2xl border px-3.5 text-[15px] outline-none"
         />
         <button
           type="button"
@@ -171,7 +172,7 @@ function SearchScreen({ initialSlot }: { initialSlot: Slot }) {
             type="button"
             onClick={() => setSlot(s)}
             className={`min-h-9 rounded-full px-3.5 text-xs font-medium ${
-              s === slot ? "bg-green text-white" : "border-line bg-card text-muted border"
+              s === slot ? "bg-green text-white" : "border-track bg-surface text-muted border"
             }`}
           >
             {SLOT_LABEL[s]}
@@ -190,7 +191,7 @@ function SearchScreen({ initialSlot }: { initialSlot: Slot }) {
         {list.map((r, idx) => (
           <div
             key={`${r.name}-${idx}`}
-            className="bg-card flex items-center gap-3 rounded-[20px] px-4 py-3.5 shadow-[0_2px_12px_rgba(23,21,15,0.05)]"
+            className="bg-card shadow-card flex items-center gap-3 rounded-[20px] px-4 py-3.5"
           >
             <div className="flex min-w-0 flex-1 flex-col gap-[3px]">
               <div className="text-sm font-medium">{r.name}</div>

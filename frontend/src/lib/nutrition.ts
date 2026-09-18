@@ -15,12 +15,6 @@ export const SLOT_SHORT: Record<Slot, string> = {
   dinner: "夕",
   snack: "間",
 };
-export const SLOT_HUE: Record<Slot, number> = {
-  breakfast: 90,
-  lunch: 152,
-  dinner: 265,
-  snack: 30,
-};
 
 export function isSlot(v: string | null | undefined): v is Slot {
   return !!v && (SLOTS as string[]).includes(v);

@@ -6,7 +6,9 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import AccountSection from "@/components/AccountSection";
 import AppShell from "@/components/AppShell";
+import QuestCard from "@/components/QuestCard";
 import SlotIcon from "@/components/SlotIcon";
+import Wordmark from "@/components/Wordmark";
 import {
   type Day,
   type History,
@@ -101,10 +103,14 @@ function HistoryScreen({ initialDate }: { initialDate: string }) {
 
   return (
     <main className="flex flex-1 flex-col gap-[18px] px-[18px] pt-[22px] pb-[120px]">
-      <div className="flex items-baseline justify-between">
-        <h1 className="text-[25px] font-black">記録簿</h1>
+      <div className="relative flex justify-center">
+        <Wordmark size="sm" />
         {selected !== today && (
-          <button type="button" onClick={jumpToToday} className="text-green-text text-xs underline">
+          <button
+            type="button"
+            onClick={jumpToToday}
+            className="text-green-text absolute top-1/2 right-0 -translate-y-1/2 text-xs underline"
+          >
             今日へ
           </button>
         )}
@@ -112,7 +118,7 @@ function HistoryScreen({ initialDate }: { initialDate: string }) {
 
       {error && <p className="text-rose-text text-sm">データを取得できませんでした（{error}）</p>}
 
-      <section className="bg-card flex flex-col gap-[18px] rounded-[26px] px-5 py-[22px] shadow-[0_2px_12px_rgba(23,21,15,0.05)]">
+      <section className="bg-card shadow-card flex flex-col gap-[18px] rounded-[26px] px-5 py-[22px]">
         <div className="flex items-center justify-between gap-2">
           <button
             type="button"
@@ -159,7 +165,7 @@ function HistoryScreen({ initialDate }: { initialDate: string }) {
                 </div>
                 <div
                   className={`w-full rounded-lg ${over ? "bg-amber" : "bg-green"} ${
-                    isSelected ? "ring-ink/70 ring-2 ring-offset-1" : ""
+                    isSelected ? "shadow-[0_0_0_1px_#fff,0_0_0_3px_rgba(23,21,15,0.7)]" : ""
                   }`}
                   style={{
                     height: `${Math.max(4, (d.kcal / maxKcal) * 100)}%`,
@@ -210,7 +216,7 @@ function HistoryScreen({ initialDate }: { initialDate: string }) {
               <Link
                 key={slot}
                 href={`/meals/edit/?slot=${slot}&date=${selected}`}
-                className="bg-card text-ink flex flex-col gap-2.5 rounded-[20px] px-[18px] py-4 shadow-[0_2px_12px_rgba(23,21,15,0.05)]"
+                className="bg-card text-ink shadow-card flex flex-col gap-2.5 rounded-[20px] px-[18px] py-4"
               >
                 <div className="flex items-center gap-3">
                   <SlotIcon slot={slot} size={32} />
@@ -242,8 +248,10 @@ function HistoryScreen({ initialDate }: { initialDate: string }) {
           })}
       </section>
 
+      <QuestCard stats={stats} />
+
       {stats && (
-        <section className="bg-card flex flex-col gap-3.5 rounded-3xl p-5 shadow-[0_2px_12px_rgba(23,21,15,0.05)]">
+        <section className="bg-card shadow-card flex flex-col gap-3.5 rounded-3xl p-5">
           <div className="text-muted text-[13px] font-bold">実績バッジ</div>
           <div className="grid grid-cols-3 gap-2.5">
             {stats.badges.map((b) => (
@@ -255,7 +263,7 @@ function HistoryScreen({ initialDate }: { initialDate: string }) {
               >
                 <div
                   className={`flex h-[26px] w-[26px] items-center justify-center rounded-full text-white ${
-                    b.earned ? "bg-green" : "bg-[#e1dace]"
+                    b.earned ? "bg-green" : "bg-track"
                   }`}
                 >
                   <Award size={14} aria-hidden />

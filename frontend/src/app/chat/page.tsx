@@ -166,16 +166,16 @@ export default function ChatPage() {
   const userBubble =
     "bg-green max-w-[80%] self-end rounded-[20px_20px_6px_20px] px-4 py-[13px] text-sm leading-[1.7] whitespace-pre-wrap text-white";
   const coachBubble =
-    "bg-card max-w-[86%] self-start rounded-[20px_20px_20px_6px] px-4 py-[13px] text-sm leading-[1.75] whitespace-pre-wrap shadow-[0_2px_12px_rgba(23,21,15,0.05)]";
+    "bg-card max-w-[86%] self-start rounded-[20px_20px_20px_6px] px-4 py-[13px] text-sm leading-[1.75] whitespace-pre-wrap shadow-card";
 
   return (
-    <AppShell refreshKey={refreshKey}>
+    <AppShell>
       <main className="flex flex-1 flex-col gap-3 px-4 pt-4 pb-[120px]">
-        <div className="border-track flex items-center gap-2.5 border-b pb-3">
-          <div className="bg-green flex h-[34px] w-[34px] items-center justify-center rounded-full text-white">
+        <div className="border-line relative flex items-center justify-center gap-2.5 border-b pb-3">
+          <div className="bg-green flex h-[34px] w-[34px] flex-none items-center justify-center rounded-full text-white">
             <Bot size={18} aria-hidden />
           </div>
-          <div className="flex flex-1 flex-col">
+          <div className="flex flex-col">
             <div className="text-sm font-bold">AIコーチ</div>
             <div className="text-green-text text-[11px]">{status}</div>
           </div>
@@ -184,7 +184,7 @@ export default function ChatPage() {
               type="button"
               onClick={reset}
               disabled={busy}
-              className="text-faint hover:text-muted flex min-h-9 items-center gap-1 px-2 text-xs disabled:opacity-40"
+              className="text-faint hover:text-muted absolute top-0 right-0 flex min-h-9 items-center gap-1 px-2 text-xs disabled:opacity-40"
             >
               <RotateCcw size={13} aria-hidden />
               リセット
@@ -224,7 +224,7 @@ export default function ChatPage() {
 
         {busy && (
           <div
-            className="bg-card flex gap-[5px] self-start rounded-[20px_20px_20px_6px] px-[18px] py-3.5 shadow-[0_2px_12px_rgba(23,21,15,0.05)]"
+            className="bg-card shadow-card flex gap-[5px] self-start rounded-[20px_20px_20px_6px] px-[18px] py-3.5"
             aria-label="返信を作成中"
           >
             {[0, 0.2, 0.4].map((delay) => (
@@ -238,7 +238,7 @@ export default function ChatPage() {
         )}
 
         {card && (
-          <div className="anim-pop bg-card flex w-[88%] flex-col gap-3 self-start rounded-[20px] p-4 shadow-[0_2px_12px_rgba(23,21,15,0.05)]">
+          <div className="anim-pop bg-card shadow-card flex w-[88%] flex-col gap-3 self-start rounded-[20px] p-4">
             <div className="text-faint text-xs">この内容で記録しますか？</div>
             <div className="flex items-baseline justify-between gap-2.5">
               <div className="text-sm font-bold">{card.name}</div>
@@ -287,7 +287,7 @@ export default function ChatPage() {
               <button
                 type="button"
                 onClick={() => setCard(null)}
-                className="border-line flex min-h-[42px] items-center rounded-full border px-5 text-[13px]"
+                className="border-line bg-surface flex min-h-[42px] items-center rounded-full border px-5 text-[13px]"
               >
                 あとで
               </button>
@@ -303,7 +303,7 @@ export default function ChatPage() {
                 type="button"
                 onClick={() => send(label)}
                 disabled={busy || bubbles === null}
-                className="border-line bg-card flex min-h-[38px] items-center rounded-full border px-3.5 text-xs disabled:opacity-40"
+                className="border-line bg-surface flex min-h-[38px] items-center rounded-full border px-3.5 text-xs disabled:opacity-40"
               >
                 {label}
               </button>
@@ -317,7 +317,7 @@ export default function ChatPage() {
               placeholder="食べたものや相談を入力"
               rows={1}
               maxLength={1000}
-              className="border-line bg-card text-ink focus:border-green max-h-[120px] min-h-12 flex-1 resize-none rounded-[22px] border px-4 py-[13px] text-[15px] leading-normal outline-none"
+              className="border-line bg-surface text-ink focus:border-green max-h-[120px] min-h-12 flex-1 resize-none rounded-[22px] border px-4 py-[13px] text-[15px] leading-normal outline-none"
             />
             <button
               type="button"

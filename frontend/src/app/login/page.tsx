@@ -79,7 +79,7 @@ export default function LoginPage() {
   return (
     <div className="flex flex-1 flex-col gap-[22px] px-6 pt-11 pb-9">
       <div className="flex flex-col items-center gap-3 pt-4 text-center">
-        <Wordmark eyebrow="WELCOME" align="center" />
+        <Wordmark eyebrow="WELCOME" />
         <p className="text-muted text-sm leading-[1.8]">
           ログインすると、記録がアカウントに保存されます。
         </p>
@@ -89,7 +89,7 @@ export default function LoginPage() {
         type="button"
         onClick={() => run(signInWithGoogle)}
         disabled={busy}
-        className="border-line bg-card flex min-h-[52px] items-center justify-center gap-2.5 rounded-full border text-[15px] font-bold disabled:opacity-40"
+        className="border-line bg-surface flex min-h-[52px] items-center justify-center gap-2.5 rounded-full border text-[15px] font-bold disabled:opacity-40"
       >
         <span className="inline-block h-[18px] w-[18px] rounded-full bg-[conic-gradient(#4285f4_0_25%,#34a853_0_50%,#fbbc05_0_75%,#ea4335_0)]" />
         Google でログイン
@@ -99,7 +99,7 @@ export default function LoginPage() {
         type="button"
         onClick={() => run(signInAsGuest)}
         disabled={busy}
-        className="bg-green flex min-h-[52px] items-center justify-center gap-2 rounded-full text-[15px] font-bold text-white shadow-[0_8px_22px_oklch(0.62_0.15_152/0.3)] disabled:opacity-40"
+        className="bg-green shadow-cta flex min-h-[52px] items-center justify-center gap-2 rounded-full text-[15px] font-bold text-white disabled:opacity-40"
       >
         <UserRound size={18} aria-hidden />
         ゲストとしてログイン
@@ -114,10 +114,7 @@ export default function LoginPage() {
         <span className="bg-line h-px flex-1" />
       </div>
 
-      <form
-        onSubmit={submit}
-        className="bg-card flex flex-col gap-4 rounded-3xl p-5 shadow-[0_2px_12px_rgba(23,21,15,0.05)]"
-      >
+      <form onSubmit={submit} className="bg-card shadow-card flex flex-col gap-4 rounded-3xl p-5">
         <div className="bg-chip flex rounded-[14px] p-1">
           {(["signin", "signup"] as const).map((m) => (
             <button
@@ -130,7 +127,7 @@ export default function LoginPage() {
               }}
               className={`min-h-10 flex-1 rounded-[11px] text-[13px] font-medium ${
                 mode === m
-                  ? "bg-card text-ink shadow-[0_1px_4px_rgba(23,21,15,0.08)]"
+                  ? "bg-surface text-ink shadow-[0_1px_4px_rgba(23,21,15,0.08)]"
                   : "text-muted"
               }`}
             >
@@ -169,7 +166,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={busy || !email.trim() || !password}
-          className="bg-green flex min-h-[50px] items-center justify-center rounded-full text-[15px] font-bold text-white shadow-[0_8px_22px_oklch(0.62_0.15_152/0.3)] disabled:opacity-40"
+          className="bg-green shadow-cta flex min-h-[50px] items-center justify-center rounded-full text-[15px] font-bold text-white disabled:opacity-40"
         >
           {busy ? "処理中..." : mode === "signin" ? "ログイン" : "登録する"}
         </button>
