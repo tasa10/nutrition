@@ -178,6 +178,7 @@ func hasGoalWeek(days []daySummary, target int) bool {
 type historyDay struct {
 	Date  string  `json:"date"`
 	Kcal  float64 `json:"kcal"`
+	Cost  int     `json:"cost"`
 	Meals int     `json:"meals"`
 }
 
@@ -222,7 +223,7 @@ func (h *StatsHandler) History(c *echo.Context) error {
 	for i := n - 1; i >= 0; i-- {
 		d := end.AddDate(0, 0, -i).Format(dateLayout)
 		s := byDate[d]
-		days = append(days, historyDay{Date: d, Kcal: s.Kcal, Meals: s.Meals})
+		days = append(days, historyDay{Date: d, Kcal: s.Kcal, Cost: s.Cost, Meals: s.Meals})
 	}
 	return c.JSON(http.StatusOK, historyResponse{TargetKcal: loadTarget(ctx, h.DB, userID), Days: days})
 }

@@ -4,6 +4,7 @@ import { ArrowLeft, Camera, Mic, Plus, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import YenField from "@/components/YenField";
 import { toThumbnailDataURL } from "@/lib/image";
 import {
   type Meal,
@@ -16,6 +17,7 @@ import {
   isISODate,
   isSlot,
   nf,
+  parseYen,
   todayISO,
   upsertMeal,
 } from "@/lib/nutrition";
@@ -30,6 +32,7 @@ function EditScreen({ slot, date }: { slot: Slot; date: string }) {
   // undefined: untouched, "": removed, data URL: replaced. Sent as-is so the API keeps / clears / swaps it.
   const [photo, setPhoto] = useState<string | undefined>(undefined);
   const [photoError, setPhotoError] = useState(false);
+  const [cost, setCost] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,6 +44,7 @@ function EditScreen({ slot, date }: { slot: Slot; date: string }) {
         const m = d.meals.find((x) => x.slot === slot) ?? null;
         setMeal(m);
         setItems(m ? m.items.map((i) => ({ ...i })) : []);
+        setCost(m && m.cost > 0 ? String(m.cost) : "");
       })
       .catch((e: unknown) => {
         if (!cancelled) {
@@ -66,7 +70,7 @@ function EditScreen({ slot, date }: { slot: Slot; date: string }) {
       if (kept.length === 0) {
         await deleteMeal(date, slot);
       } else {
-        await upsertMeal(date, slot, "edited", kept, photo);
+        await upsertMeal(date, slot, "edited", kept, { photo, cost: parseYen(cost) });
       }
       router.push(backHref);
     } catch (e) {
@@ -205,6 +209,22 @@ function EditScreen({ slot, date }: { slot: Slot; date: string }) {
           <Plus size={15} aria-hidden />
           品目を追加
         </button>
+      </section>
+
+      <section className="bg-card shadow-card flex items-center gap-3.5 rounded-[22px] p-4">
+        <div className="flex min-w-0 flex-1 flex-col gap-[3px]">
+          <div className="text-[13px] font-medium">かかった金額</div>
+          <div className="text-faint text-[11px]">
+            この{SLOT_LABEL[slot]}全体の金額。食費管理に反映されます
+          </div>
+        </div>
+        <YenField
+          value={cost}
+          onChange={setCost}
+          ariaLabel={`${SLOT_LABEL[slot]}にかかった金額（円）`}
+          disabled={busy}
+          className="w-[130px] flex-none"
+        />
       </section>
 
       <section className="bg-card shadow-card flex items-center gap-3.5 rounded-[22px] p-4">

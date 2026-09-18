@@ -3,6 +3,7 @@
 import { ArrowUp, Bot, RotateCcw } from "lucide-react";
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import AppShell from "@/components/AppShell";
+import YenField from "@/components/YenField";
 import { ApiError } from "@/lib/api";
 import {
   type ChatMessage,
@@ -18,6 +19,7 @@ import {
   getDay,
   getStats,
   nf,
+  parseYen,
   postChatNote,
   sendChat,
   todayISO,
@@ -45,6 +47,7 @@ export default function ChatPage() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [card, setCard] = useState<RecordProposal | null>(null);
+  const [cardCost, setCardCost] = useState("");
   const [saving, setSaving] = useState(false);
   const [day, setDay] = useState<Day | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -106,6 +109,7 @@ export default function ChatPage() {
         ...reply.messages.map((message) => ({ kind: "stored" as const, message, key: nextKey++ })),
       ]);
       setCard(reply.record);
+      setCardCost("");
     } catch (e) {
       // Nothing was stored server-side, so drop the pending bubble and let the user resend.
       setBubbles((xs) => (xs ?? []).filter((b) => b.kind !== "pending"));
@@ -128,7 +132,7 @@ export default function ChatPage() {
         card.items.length > 0
           ? card.items
           : [{ ...blankItem(), name: card.name, detail: "1人前", kcal: card.kcal }];
-      await appendToMeal(todayISO(), card.slot, "chat", items);
+      await appendToMeal(todayISO(), card.slot, "chat", items, parseYen(cardCost));
       setCard(null);
       setRefreshKey((n) => n + 1);
       const note = await postChatNote(`${SLOT_LABEL[card.slot]}に記録したぞ。+20XP！`);
@@ -274,6 +278,16 @@ export default function ChatPage() {
                   {SLOT_LABEL[slot]}
                 </button>
               ))}
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-muted text-xs">かかった金額（任意）</div>
+              <YenField
+                value={cardCost}
+                onChange={setCardCost}
+                ariaLabel="この食事にかかった金額（円）"
+                disabled={saving}
+                className="w-[130px] flex-none"
+              />
             </div>
             <div className="flex gap-2">
               <button

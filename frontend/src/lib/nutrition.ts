@@ -62,6 +62,8 @@ export type Meal = {
   slot: Slot;
   source: string;
   photo?: string;
+  // Yen for the whole meal; 0 means not entered.
+  cost: number;
   recorded_at: string;
   items: MealItem[];
 };
@@ -86,6 +88,7 @@ export type Profile = {
   weight_now: number;
   weight_goal: number;
   activity_level: number;
+  monthly_budget: number;
   target_kcal: number;
 };
 
@@ -105,7 +108,15 @@ export type Stats = {
   badges: Badge[];
 };
 
-export type HistoryDay = { date: string; kcal: number; meals: number };
+export type HistoryDay = { date: string; kcal: number; cost: number; meals: number };
+
+export type Budget = {
+  month: string;
+  // 0 means no budget set.
+  monthly_budget: number;
+  spent: number;
+  by_slot: { slot: Slot; cost: number }[];
+};
 export type History = { target_kcal: number; days: HistoryDay[] };
 
 export type ChatRole = "user" | "assistant";
@@ -170,7 +181,42 @@ export function formatTime(iso: string): string {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
+// "2026-09"
+export function monthOf(date: string): string {
+  return date.slice(0, 7);
+}
+
+export function daysInMonth(month: string): number {
+  const [y, m] = month.split("-").map(Number);
+  return new Date(y, m, 0).getDate();
+}
+
+export function monthEnd(month: string): string {
+  return `${month}-${String(daysInMonth(month)).padStart(2, "0")}`;
+}
+
+export function addMonths(month: string, n: number): string {
+  const [y, m] = month.split("-").map(Number);
+  const d = new Date(y, m - 1 + n, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+// "2026年9月"
+export function formatMonthJP(month: string): string {
+  const [y, m] = month.split("-").map(Number);
+  return `${y}年${m}月`;
+}
+
 export const nf = (n: number) => Math.round(n).toLocaleString("en-US");
+export const yen = (n: number) => `¥${nf(n)}`;
+
+export const MAX_YEN = 10_000_000;
+
+// Parses a yen input field: digits only, clamped to what the API accepts. "" is 0.
+export function parseYen(v: string): number {
+  const n = Number(v.replace(/[^\d]/g, ""));
+  return Number.isFinite(n) ? Math.min(MAX_YEN, n) : 0;
+}
 
 export function mealKcal(m: Meal | undefined): number {
   return m ? m.items.reduce((a, i) => a + (i.kcal || 0), 0) : 0;
@@ -188,32 +234,54 @@ export const putProfile = (body: {
   weight_now: number;
   weight_goal: number;
   activity_level: number;
+  // Left out: the stored budget is kept.
+  monthly_budget?: number;
 }) => putJson<Profile>("/api/profile", body);
 
 export const getDay = (date: string) => fetchJson<Day>(`/api/days/${date}`);
 export const analyzeMeal = (text: string) => postJson<Analysis>("/api/meals/analyze", { text });
 
-// photo: undefined keeps the stored photo, "" removes it, a data URL replaces it.
+type MealExtras = {
+  // undefined keeps the stored photo, "" removes it, a data URL replaces it.
+  photo?: string;
+  // Yen for the whole meal. undefined keeps the stored amount.
+  cost?: number;
+};
+
+// Replaces the slot's items. Keys left out of `extras` are not sent, so the server keeps them.
 export const upsertMeal = (
   date: string,
   slot: Slot,
   source: string,
   items: MealItem[],
-  photo?: string,
-) =>
-  putJson<Meal>(
-    `/api/meals/${date}/${slot}`,
-    photo === undefined ? { source, items } : { source, items, photo },
-  );
+  extras: MealExtras = {},
+) => putJson<Meal>(`/api/meals/${date}/${slot}`, { source, items, ...extras });
 
 export const deleteMeal = (date: string, slot: Slot) => deleteJson(`/api/meals/${date}/${slot}`);
 
 // Adds items to whatever is already recorded for the slot instead of replacing it.
-export async function appendToMeal(date: string, slot: Slot, source: string, items: MealItem[]) {
+// addCost (yen) is added on top of what the slot already cost.
+export async function appendToMeal(
+  date: string,
+  slot: Slot,
+  source: string,
+  items: MealItem[],
+  addCost = 0,
+) {
   const day = await getDay(date);
   const current = day.meals.find((m) => m.slot === slot);
-  return upsertMeal(date, slot, source, [...(current?.items ?? []), ...items]);
+  return upsertMeal(
+    date,
+    slot,
+    source,
+    [...(current?.items ?? []), ...items],
+    addCost > 0 ? { cost: (current?.cost ?? 0) + addCost } : {},
+  );
 }
+
+export const getBudget = (month: string) => fetchJson<Budget>(`/api/budget?month=${month}`);
+export const putBudget = (monthlyBudget: number) =>
+  putJson<{ monthly_budget: number }>("/api/budget", { monthly_budget: monthlyBudget });
 
 export const getStats = (date: string) => fetchJson<Stats>(`/api/stats?date=${date}`);
 export const getHistory = (to: string, days: number) =>

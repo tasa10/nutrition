@@ -77,22 +77,29 @@ type daySummary struct {
 	Fat     float64 `gorm:"column:fat"`
 	Carbs   float64 `gorm:"column:carbs"`
 	Salt    float64 `gorm:"column:salt"`
+	Cost    int     `gorm:"column:cost"`
 }
 
 // loadDaySummaries returns only days that have at least one meal, oldest first.
 // Dates are stored as YYYY-MM-DD strings, so lexical BETWEEN is a date range.
+// Items are summed per meal first so that m.cost is counted once per meal, not once per item.
 func loadDaySummaries(ctx context.Context, db *gorm.DB, userID uint, from, to string) ([]daySummary, error) {
 	var rows []daySummary
 	err := db.WithContext(ctx).Raw(`
 SELECT m.date AS date,
-       COUNT(DISTINCT m.id) AS meals,
+       COUNT(*) AS meals,
        COALESCE(SUM(i.kcal), 0) AS kcal,
        COALESCE(SUM(i.protein), 0) AS protein,
        COALESCE(SUM(i.fat), 0) AS fat,
        COALESCE(SUM(i.carbs), 0) AS carbs,
-       COALESCE(SUM(i.salt), 0) AS salt
+       COALESCE(SUM(i.salt), 0) AS salt,
+       COALESCE(SUM(m.cost), 0) AS cost
 FROM meals m
-LEFT JOIN meal_items i ON i.meal_id = m.id
+LEFT JOIN (
+  SELECT meal_id, SUM(kcal) AS kcal, SUM(protein) AS protein, SUM(fat) AS fat,
+         SUM(carbs) AS carbs, SUM(salt) AS salt
+  FROM meal_items GROUP BY meal_id
+) i ON i.meal_id = m.id
 WHERE m.user_id = ? AND m.date BETWEEN ? AND ?
 GROUP BY m.date
 ORDER BY m.date`, userID, from, to).Scan(&rows).Error

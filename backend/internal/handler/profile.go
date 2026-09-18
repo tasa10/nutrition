@@ -40,6 +40,12 @@ type putProfileRequest struct {
 	WeightNow     float64 `json:"weight_now"`
 	WeightGoal    float64 `json:"weight_goal"`
 	ActivityLevel int     `json:"activity_level"`
+	// MonthlyBudget in yen: omitted keeps the current budget, 0 clears it.
+	MonthlyBudget *int `json:"monthly_budget"`
+}
+
+func validBudget(yen int) bool {
+	return yen >= 0 && yen <= model.MaxYen
 }
 
 func (h *ProfileHandler) Put(c *echo.Context) error {
@@ -53,6 +59,9 @@ func (h *ProfileHandler) Put(c *echo.Context) error {
 	if req.ActivityLevel < model.ActivityNormal || req.ActivityLevel > model.ActivityHigh {
 		return echo.NewHTTPError(http.StatusBadRequest, "activity_level must be 0, 1 or 2")
 	}
+	if req.MonthlyBudget != nil && !validBudget(*req.MonthlyBudget) {
+		return echo.NewHTTPError(http.StatusBadRequest, "monthly_budget must be between 0 and 10000000")
+	}
 
 	ctx := c.Request().Context()
 	userID := auth.UserID(c)
@@ -65,6 +74,9 @@ func (h *ProfileHandler) Put(c *echo.Context) error {
 	p.WeightNow = req.WeightNow
 	p.WeightGoal = req.WeightGoal
 	p.ActivityLevel = req.ActivityLevel
+	if req.MonthlyBudget != nil {
+		p.MonthlyBudget = *req.MonthlyBudget
+	}
 	if err := h.DB.WithContext(ctx).Save(&p).Error; err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to save profile")
 	}

@@ -75,6 +75,10 @@ func run() error {
 	api.GET("/profile", profileHandler.Get)
 	api.PUT("/profile", profileHandler.Put)
 
+	budgetHandler := handler.NewBudgetHandler(gormDB)
+	api.GET("/budget", budgetHandler.Get)
+	api.PUT("/budget", budgetHandler.Put)
+
 	mealHandler := handler.NewMealHandler(gormDB, aiService)
 	api.POST("/meals/analyze", mealHandler.Analyze)
 	api.GET("/days/:date", mealHandler.GetDay)
