@@ -85,8 +85,6 @@ export default function RecordPage() {
           })}
         </div>
 
-        <QuestCard stats={stats} />
-
         <Link
           href="/record/search/"
           className="bg-card text-ink shadow-card flex items-center gap-3.5 rounded-[22px] px-[18px] py-4"
@@ -145,6 +143,8 @@ export default function RecordPage() {
             )}
           </button>
         )}
+
+        <QuestCard stats={stats} />
       </main>
 
       {budget && budgetOpen && (
