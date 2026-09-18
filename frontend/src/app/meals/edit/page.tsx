@@ -126,7 +126,7 @@ function EditScreen({ slot, date }: { slot: Slot; date: string }) {
       <div className="flex items-center gap-3">
         <Link
           href={backHref}
-          className="border-line bg-card text-ink flex h-11 w-11 flex-none items-center justify-center rounded-full border shadow-[0_2px_8px_rgba(23,21,15,0.06)]"
+          className="bg-surface text-ink shadow-card flex h-11 w-11 flex-none items-center justify-center rounded-full"
           aria-label="戻る"
         >
           <ArrowLeft size={20} aria-hidden />
@@ -139,7 +139,7 @@ function EditScreen({ slot, date }: { slot: Slot; date: string }) {
         </div>
       </div>
 
-      <section className="bg-card flex flex-col gap-4 rounded-[26px] p-5 shadow-[0_2px_12px_rgba(23,21,15,0.05)]">
+      <section className="bg-card shadow-card flex flex-col gap-4 rounded-[26px] p-5">
         <div className="flex items-baseline justify-between">
           <div className="text-muted text-[13px] font-bold">合計</div>
           <div className="font-mono text-[28px] font-medium">
@@ -200,14 +200,14 @@ function EditScreen({ slot, date }: { slot: Slot; date: string }) {
               },
             ])
           }
-          className="text-muted flex min-h-11 items-center gap-1.5 self-start rounded-full border-[1.5px] border-dashed border-[#dcd5c9] px-5 text-[13px] font-medium"
+          className="text-muted border-track flex min-h-11 items-center gap-1.5 self-start rounded-full border-[1.5px] border-dashed px-5 text-[13px] font-medium"
         >
           <Plus size={15} aria-hidden />
           品目を追加
         </button>
       </section>
 
-      <section className="bg-card flex items-center gap-3.5 rounded-[22px] p-4 shadow-[0_2px_12px_rgba(23,21,15,0.05)]">
+      <section className="bg-card shadow-card flex items-center gap-3.5 rounded-[22px] p-4">
         {shownPhoto ? (
           <div
             className="h-16 w-16 flex-none rounded-2xl bg-cover bg-center"
@@ -265,7 +265,7 @@ function EditScreen({ slot, date }: { slot: Slot; date: string }) {
           type="button"
           onClick={save}
           disabled={busy}
-          className="bg-green flex min-h-[54px] items-center justify-center rounded-full text-base font-bold text-white shadow-[0_8px_22px_oklch(0.62_0.15_152/0.3)] disabled:opacity-40"
+          className="bg-green shadow-cta flex min-h-[54px] items-center justify-center rounded-full text-base font-bold text-white disabled:opacity-40"
         >
           {busy ? "保存中..." : "保存する"}
         </button>
@@ -273,7 +273,7 @@ function EditScreen({ slot, date }: { slot: Slot; date: string }) {
           {isToday && (
             <Link
               href={`/record/input/?slot=${slot}`}
-              className="border-line bg-card flex min-h-[46px] flex-1 items-center justify-center gap-1.5 rounded-full border text-sm"
+              className="border-line bg-surface flex min-h-[46px] flex-1 items-center justify-center gap-1.5 rounded-full border text-sm"
             >
               <Mic size={15} aria-hidden />
               音声で追加する
@@ -283,7 +283,7 @@ function EditScreen({ slot, date }: { slot: Slot; date: string }) {
             type="button"
             onClick={remove}
             disabled={busy}
-            className="border-rose-line bg-card text-rose-text flex min-h-[46px] flex-1 items-center justify-center gap-1.5 rounded-full border text-sm disabled:opacity-40"
+            className="border-rose-line bg-surface text-rose-text flex min-h-[46px] flex-1 items-center justify-center gap-1.5 rounded-full border text-sm disabled:opacity-40"
           >
             <Trash2 size={15} aria-hidden />
             この記録を削除

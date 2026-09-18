@@ -126,28 +126,25 @@ function InputScreen({ slot }: { slot: Slot }) {
   const canAnalyze = !!transcript.trim() && !analyzing;
 
   return (
-    <div className="bg-night flex min-h-dvh flex-1 flex-col gap-5 px-[22px] pt-[26px] pb-10 text-white">
+    <div className="bg-paper text-ink flex min-h-dvh flex-1 flex-col gap-5 px-[22px] pt-[26px] pb-10">
       <div className="flex items-center justify-between">
         <Link
           href="/record/"
-          className="flex h-11 w-11 flex-none items-center justify-center rounded-full border border-white/20 bg-white/10 text-white"
+          className="bg-surface text-ink shadow-card flex h-11 w-11 flex-none items-center justify-center rounded-full"
           aria-label="戻る"
         >
           <ArrowLeft size={20} aria-hidden />
         </Link>
-        <div className="text-[13px] font-medium text-white/80">{SLOT_LABEL[slot]}を記録中</div>
+        <div className="text-muted text-[13px] font-medium">{SLOT_LABEL[slot]}を記録中</div>
       </div>
 
       <div className="flex flex-1 flex-col justify-center gap-[18px]">
-        <div
-          className="font-mono text-xs tracking-[0.14em]"
-          style={{ color: "oklch(0.72 0.14 152)" }}
-        >
+        <div className="text-green-text font-mono text-xs tracking-[0.14em]">
           {analyzing ? "AI ANALYZING…" : listening ? "LISTENING" : "READY"}
         </div>
         {listening ? (
           <div
-            className={`leading-[1.7] ${transcript ? "text-[21px] font-medium text-white" : "text-base text-white/40"}`}
+            className={`leading-[1.7] text-pretty ${transcript ? "text-ink text-[21px] font-medium" : "text-faint text-base"}`}
           >
             {transcript || "聞いています…"}
           </div>
@@ -162,12 +159,10 @@ function InputScreen({ slot }: { slot: Slot }) {
                 : "例：豚の生姜焼き定食、ごはん大盛り、味噌汁"
             }
             rows={4}
-            className="w-full resize-none rounded-[18px] border border-white/20 bg-white/[0.07] p-3.5 text-[17px] leading-[1.6] text-white outline-none placeholder:text-white/30"
+            className="border-line bg-surface text-ink shadow-card placeholder:text-dim focus:border-green w-full resize-none rounded-[18px] border p-3.5 text-[17px] leading-[1.6] outline-none"
           />
         )}
-        {error && (
-          <p className="text-sm text-[oklch(0.8_0.12_30)]">解析に失敗しました（{error}）</p>
-        )}
+        {error && <p className="text-rose-text text-sm">解析に失敗しました（{error}）</p>}
       </div>
 
       {listening && (
@@ -175,10 +170,9 @@ function InputScreen({ slot }: { slot: Slot }) {
           {[40, 72, 100, 56, 86, 44, 74].map((h, i) => (
             <div
               key={i}
-              className="anim-wave w-1.5 rounded-full"
+              className="anim-wave bg-green w-1.5 rounded-full"
               style={{
                 height: `${h}%`,
-                background: "oklch(0.72 0.14 152)",
                 animationDelay: `${(i % 4) * 0.1}s`,
                 animationDuration: `${0.9 + (i % 5) * 0.1}s`,
               }}
@@ -191,16 +185,16 @@ function InputScreen({ slot }: { slot: Slot }) {
         <button
           type="button"
           onClick={toggleMic}
-          className={`flex h-[76px] w-[76px] items-center justify-center rounded-full ${listening ? "anim-pulse-ring bg-white" : "bg-green"}`}
+          className={`shadow-cta flex h-[76px] w-[76px] items-center justify-center rounded-full text-white ${listening ? "anim-pulse-ring bg-ink" : "bg-green"}`}
           aria-label={listening ? "停止" : "マイク"}
         >
           {listening ? (
-            <Square size={26} className="text-night fill-current" aria-hidden />
+            <Square size={26} className="fill-current" aria-hidden />
           ) : (
-            <Mic size={34} className="text-white" aria-hidden />
+            <Mic size={34} aria-hidden />
           )}
         </button>
-        <div className="text-xs text-white/45">
+        <div className="text-faint text-xs">
           {speechOK
             ? listening
               ? "もう一度押すと停止"
@@ -212,7 +206,7 @@ function InputScreen({ slot }: { slot: Slot }) {
           onClick={analyze}
           disabled={!canAnalyze}
           className={`flex min-h-[50px] w-full items-center justify-center rounded-full text-[15px] font-bold ${
-            canAnalyze ? "text-night bg-white" : "bg-white/[0.12] text-white/45"
+            canAnalyze ? "bg-ink shadow-ink text-white" : "bg-track text-faint"
           }`}
         >
           {analyzing ? "AIが解析中…" : "AIで解析する"}
@@ -231,7 +225,7 @@ function InputPageInner() {
 
 export default function InputPage() {
   return (
-    <Suspense fallback={<div className="bg-night min-h-dvh" />}>
+    <Suspense fallback={<div className="bg-paper min-h-dvh" />}>
       <InputPageInner />
     </Suspense>
   );

@@ -1,8 +1,10 @@
 "use client";
 
+import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Wordmark from "@/components/Wordmark";
+import { authEnabled, signOut } from "@/lib/firebase";
 import { nf, previewTarget, putProfile } from "@/lib/nutrition";
 
 const ACTIVITY = ["ふつう", "活動的", "よく動く"];
@@ -14,6 +16,7 @@ export default function OnboardingPage() {
   const [act, setAct] = useState(1);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [leaving, setLeaving] = useState(false);
 
   const target = previewTarget(wNow, wGoal, act);
   const valid = wNow > 0 && wGoal > 0;
@@ -31,19 +34,45 @@ export default function OnboardingPage() {
     }
   }
 
+  async function backToLogin() {
+    if (leaving) return;
+    setLeaving(true);
+    try {
+      await signOut();
+      router.replace("/login/");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "unknown error");
+      setLeaving(false);
+    }
+  }
+
   const field =
     "h-12 w-full rounded-[14px] border border-line bg-field px-3.5 font-mono text-[17px] text-ink outline-none focus:border-green";
 
   return (
-    <div className="flex flex-1 flex-col gap-[22px] px-6 pt-11 pb-9">
-      <div className="flex flex-col gap-2">
-        <Wordmark eyebrow="LV.1 スタート" />
-        <p className="text-muted text-sm leading-[1.8]">
+    <div className="flex flex-1 flex-col gap-[22px] px-6 pt-[22px] pb-9">
+      {/* Reached right after signing in, so going back means signing out. Dev mode has no login. */}
+      {authEnabled && (
+        <div className="flex items-center">
+          <button
+            type="button"
+            onClick={backToLogin}
+            disabled={saving || leaving}
+            className="bg-surface text-ink shadow-card flex h-11 w-11 flex-none items-center justify-center rounded-full disabled:opacity-40"
+            aria-label="ログアウトしてログイン画面に戻る"
+          >
+            <ArrowLeft size={20} aria-hidden />
+          </button>
+        </div>
+      )}
+      <div className="flex flex-col items-center gap-2.5 pt-1.5 text-center">
+        <Wordmark />
+        <p className="text-muted mt-1.5 max-w-[320px] text-sm leading-[1.8] text-pretty">
           音声かチャットで伝えるだけ。AIが食材ごとに分解して、カロリー・PFC・塩分まで自動計算します。
         </p>
       </div>
 
-      <div className="bg-card flex flex-col gap-[18px] rounded-3xl p-5 shadow-[0_2px_12px_rgba(23,21,15,0.05)]">
+      <div className="bg-card shadow-card flex flex-col gap-[18px] rounded-3xl p-5">
         <label className="flex flex-col gap-2">
           <span className="text-muted text-[13px] font-medium">現在の体重 (kg)</span>
           <input
@@ -96,7 +125,7 @@ export default function OnboardingPage() {
         type="button"
         onClick={start}
         disabled={!valid || saving}
-        className="bg-green mt-auto flex min-h-[54px] items-center justify-center rounded-full text-[17px] font-bold text-white shadow-[0_8px_22px_oklch(0.62_0.15_152/0.3)] disabled:opacity-40"
+        className="bg-green shadow-cta mt-auto flex min-h-[54px] items-center justify-center rounded-full text-[17px] font-bold text-white disabled:opacity-40"
       >
         {saving ? "保存中..." : "はじめる"}
       </button>

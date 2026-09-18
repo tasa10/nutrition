@@ -1,20 +1,39 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { ChevronRight, Search } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import AppShell from "@/components/AppShell";
+import QuestCard from "@/components/QuestCard";
 import SlotIcon from "@/components/SlotIcon";
-import { type Day, SLOTS, SLOT_LABEL, getDay, mealKcal, nf, todayISO } from "@/lib/nutrition";
+import Wordmark from "@/components/Wordmark";
+import {
+  type Day,
+  type Stats,
+  SLOTS,
+  SLOT_LABEL,
+  getDay,
+  getStats,
+  mealKcal,
+  nf,
+  todayISO,
+} from "@/lib/nutrition";
 
 export default function RecordPage() {
   const [day, setDay] = useState<Day | null>(null);
+  const [stats, setStats] = useState<Stats | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    getDay(todayISO())
+    const date = todayISO();
+    getDay(date)
       .then((d) => {
         if (!cancelled) setDay(d);
+      })
+      .catch(() => {});
+    getStats(date)
+      .then((s) => {
+        if (!cancelled) setStats(s);
       })
       .catch(() => {});
     return () => {
@@ -25,8 +44,8 @@ export default function RecordPage() {
   return (
     <AppShell>
       <main className="flex flex-1 flex-col gap-5 px-[18px] pt-[22px] pb-[120px]">
-        <div className="flex flex-col gap-1.5">
-          <h1 className="text-[25px] font-black">なに食べた？</h1>
+        <div className="flex flex-col items-center gap-2 text-center">
+          <Wordmark size="sm" />
           <p className="text-faint text-[13px]">区分をえらぶと音声入力がはじまります</p>
         </div>
 
@@ -37,31 +56,36 @@ export default function RecordPage() {
               <Link
                 key={slot}
                 href={`/record/input/?slot=${slot}`}
-                className="bg-card text-ink flex flex-col gap-2.5 rounded-3xl px-[18px] py-[22px] shadow-[0_2px_12px_rgba(23,21,15,0.05)]"
+                className="bg-card text-ink shadow-card flex flex-col items-center gap-2.5 rounded-3xl px-[18px] py-[22px] text-center"
               >
-                <SlotIcon slot={slot} size={34} />
+                <SlotIcon slot={slot} size={44} />
                 <div className="text-lg font-bold">{SLOT_LABEL[slot]}</div>
-                <div className={`font-mono text-xs ${m ? "text-green-deep" : "text-faint"}`}>
-                  {m ? `記録済 ${nf(mealKcal(m))}kcal` : "未記録 · タップ"}
+                {/* Keeps the four cards the same height whether or not the slot is recorded. */}
+                <div className="text-green-deep min-h-4 font-mono text-xs">
+                  {m ? `記録済 ${nf(mealKcal(m))}kcal` : ""}
                 </div>
               </Link>
             );
           })}
         </div>
 
-        <div className="bg-card flex flex-col gap-2.5 rounded-[22px] p-[18px] shadow-[0_2px_12px_rgba(23,21,15,0.05)]">
-          <div className="text-sm font-bold">手で探して追加</div>
-          <p className="text-muted text-xs leading-[1.7]">
-            よく食べるものはお気に入りからワンタップ。
-          </p>
-          <Link
-            href="/record/search/"
-            className="border-line flex min-h-11 items-center gap-1.5 self-start rounded-full border px-5 text-[13px] font-medium"
-          >
-            <Search size={15} aria-hidden />
-            食品を検索
-          </Link>
-        </div>
+        <QuestCard stats={stats} />
+
+        <Link
+          href="/record/search/"
+          className="bg-card text-ink shadow-card flex items-center gap-3.5 rounded-[22px] px-[18px] py-4"
+        >
+          <div className="bg-green-soft text-green-deep flex h-11 w-11 flex-none items-center justify-center rounded-xl">
+            <Search size={22} aria-hidden />
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col gap-[3px]">
+            <div className="text-sm font-bold">手動で追加</div>
+            <div className="text-muted text-xs leading-[1.6]">
+              食品を検索、またはよく食べるものからワンタップ
+            </div>
+          </div>
+          <ChevronRight size={18} className="text-faint flex-none" aria-hidden />
+        </Link>
       </main>
     </AppShell>
   );

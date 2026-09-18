@@ -24,7 +24,7 @@ export default function AccountSection() {
   }
 
   return (
-    <section className="bg-card flex items-center gap-3 rounded-3xl p-5 shadow-[0_2px_12px_rgba(23,21,15,0.05)]">
+    <section className="bg-card shadow-card flex items-center gap-3 rounded-3xl p-5">
       <div className="bg-chip text-muted flex h-10 w-10 flex-none items-center justify-center rounded-full">
         <UserRound size={20} aria-hidden />
       </div>

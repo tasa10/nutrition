@@ -15,9 +15,9 @@ import {
 } from "@/lib/nutrition";
 
 const CONF: Record<Confidence, { t: string; bg: string; fg: string }> = {
-  high: { t: "確度 高", bg: "oklch(0.95 0.04 152)", fg: "oklch(0.44 0.11 152)" },
-  mid: { t: "確度 中", bg: "oklch(0.95 0.05 80)", fg: "oklch(0.48 0.1 65)" },
-  low: { t: "確度 低", bg: "oklch(0.95 0.04 30)", fg: "oklch(0.48 0.12 30)" },
+  high: { t: "確度 高", bg: "var(--color-green-soft)", fg: "var(--color-green-deep)" },
+  mid: { t: "確度 中", bg: "var(--color-amber-soft)", fg: "var(--color-amber-text)" },
+  low: { t: "確度 低", bg: "var(--color-red-soft)", fg: "var(--color-red-deep)" },
 };
 
 export default function ReviewPage() {
@@ -67,7 +67,7 @@ export default function ReviewPage() {
         <p className="text-faint text-xs">ちがうものは削除できます。写真は今日の食事から足せます</p>
       </div>
 
-      <section className="anim-pop bg-card flex flex-col gap-4 rounded-[26px] p-[22px] shadow-[0_2px_12px_rgba(23,21,15,0.05)]">
+      <section className="anim-pop bg-card shadow-card flex flex-col gap-4 rounded-[26px] p-[22px]">
         <div className="flex items-baseline justify-between">
           <div className="text-[15px] font-bold">{SLOT_LABEL[draft.slot]}</div>
           <div className="font-mono text-[30px] font-medium">
@@ -130,14 +130,14 @@ export default function ReviewPage() {
           type="button"
           onClick={commit}
           disabled={items.length === 0 || saving}
-          className="bg-green flex min-h-[54px] items-center justify-center rounded-full text-base font-bold text-white shadow-[0_8px_22px_oklch(0.62_0.15_152/0.3)] disabled:opacity-40"
+          className="bg-green shadow-cta flex min-h-[54px] items-center justify-center rounded-full text-base font-bold text-white disabled:opacity-40"
         >
           {saving ? "保存中..." : "この内容で記録 +20XP"}
         </button>
         <Link
           href={`/record/input/?slot=${draft.slot}`}
           onClick={clearDraft}
-          className="border-line bg-card flex min-h-[46px] items-center justify-center gap-1.5 rounded-full border text-sm"
+          className="border-line bg-surface flex min-h-[46px] items-center justify-center gap-1.5 rounded-full border text-sm"
         >
           <RotateCcw size={15} aria-hidden />
           言い直す

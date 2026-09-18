@@ -1,11 +1,25 @@
 import { Cookie, type LucideIcon, Moon, Sun, Sunrise } from "lucide-react";
-import { type Slot, SLOT_HUE } from "@/lib/nutrition";
+import { type Slot } from "@/lib/nutrition";
 
 const ICONS: Record<Slot, LucideIcon> = {
   breakfast: Sunrise,
   lunch: Sun,
   dinner: Moon,
   snack: Cookie,
+};
+
+// Saturated tint + dark ink of the same hue, one pair per slot.
+export const SLOT_BG: Record<Slot, string> = {
+  breakfast: "oklch(87.9% 0.169 91.605)",
+  lunch: "oklch(87.1% 0.15 154.449)",
+  dinner: "oklch(78.5% 0.115 274.713)",
+  snack: "oklch(83.7% 0.128 66.29)",
+};
+export const SLOT_FG: Record<Slot, string> = {
+  breakfast: "oklch(41.4% 0.112 45.904)",
+  lunch: "oklch(39.3% 0.095 152.535)",
+  dinner: "oklch(35.9% 0.144 278.697)",
+  snack: "oklch(40.8% 0.123 38.172)",
 };
 
 type Props = {
@@ -18,10 +32,7 @@ type Props = {
 export default function SlotIcon({ slot, active = true, size = 38 }: Props) {
   const Icon = ICONS[slot];
   const style = active
-    ? {
-        background: `oklch(0.94 0.04 ${SLOT_HUE[slot]})`,
-        color: `oklch(0.44 0.1 ${SLOT_HUE[slot]})`,
-      }
+    ? { background: SLOT_BG[slot], color: SLOT_FG[slot] }
     : { background: "var(--color-track)", color: "var(--color-faint)" };
   return (
     <div
