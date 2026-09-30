@@ -17,8 +17,10 @@ import (
 	"nutrition/backend/internal/ai"
 	"nutrition/backend/internal/auth"
 	"nutrition/backend/internal/config"
-	"nutrition/backend/internal/db"
 	"nutrition/backend/internal/handler"
+	"nutrition/backend/internal/infrastructure/database"
+	"nutrition/backend/internal/infrastructure/repository"
+	"nutrition/backend/internal/usecase"
 )
 
 func main() {
@@ -31,7 +33,7 @@ func main() {
 func run() error {
 	cfg := config.Load()
 
-	gormDB, err := db.Connect(cfg.DatabaseURL)
+	gormDB, err := database.Connect(cfg.DatabaseURL)
 	if err != nil {
 		return fmt.Errorf("connect to database: %w", err)
 	}
@@ -43,7 +45,7 @@ func run() error {
 		}
 	}()
 
-	if err := db.Migrate(gormDB); err != nil {
+	if err := database.Migrate(gormDB); err != nil {
 		return fmt.Errorf("migrate database: %w", err)
 	}
 
@@ -62,36 +64,41 @@ func run() error {
 		AllowHeaders: []string{echo.HeaderContentType, echo.HeaderAuthorization},
 	}))
 
-	e.GET("/api/health", handler.NewHealthHandler(gormDB).Get)
+	// Dependencies point inward: handler → usecase → domain ← infrastructure. Everything is wired here.
+	chatRepo := repository.NewChatRepository(gormDB)
+	mealRepo := repository.NewMealRepository(gormDB)
+	profileRepo := repository.NewProfileRepository(gormDB)
+
+	e.GET("/api/health", handler.NewHealthHandler(database.NewPinger(gormDB)).Get)
 
 	api := e.Group("/api", auth.Middleware(authenticator))
 	api.GET("/me", handler.Me)
 
-	foodHandler := handler.NewFoodHandler(gormDB, aiService)
+	foodHandler := handler.NewFoodHandler(usecase.NewFoodUsecase(mealRepo, aiService))
 	api.POST("/foods/search", foodHandler.Search)
 	api.GET("/foods/frequent", foodHandler.Frequent)
 
-	profileHandler := handler.NewProfileHandler(gormDB)
+	profileHandler := handler.NewProfileHandler(usecase.NewProfileUsecase(profileRepo))
 	api.GET("/profile", profileHandler.Get)
 	api.PUT("/profile", profileHandler.Put)
 
-	budgetHandler := handler.NewBudgetHandler(gormDB)
+	budgetHandler := handler.NewBudgetHandler(usecase.NewBudgetUsecase(mealRepo, profileRepo))
 	api.GET("/budget", budgetHandler.Get)
 	api.PUT("/budget", budgetHandler.Put)
 
-	mealHandler := handler.NewMealHandler(gormDB, aiService)
+	mealHandler := handler.NewMealHandler(usecase.NewMealUsecase(mealRepo, profileRepo, aiService))
 	api.POST("/meals/analyze", mealHandler.Analyze)
 	api.GET("/days/:date", mealHandler.GetDay)
 	api.PUT("/meals/:date/:slot", mealHandler.Upsert)
 	api.DELETE("/meals/:date/:slot", mealHandler.Delete)
 
-	chatHandler := handler.NewChatHandler(gormDB, aiService)
+	chatHandler := handler.NewChatHandler(usecase.NewChatUsecase(chatRepo, mealRepo, profileRepo, aiService))
 	api.GET("/chat", chatHandler.Get)
 	api.POST("/chat", chatHandler.Post)
 	api.POST("/chat/notes", chatHandler.PostNote)
 	api.DELETE("/chat", chatHandler.Clear)
 
-	statsHandler := handler.NewStatsHandler(gormDB)
+	statsHandler := handler.NewStatsHandler(usecase.NewStatsUsecase(mealRepo, profileRepo))
 	api.GET("/stats", statsHandler.Get)
 	api.GET("/history", statsHandler.History)
 

@@ -5,18 +5,19 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v5"
-	"gorm.io/gorm"
 
 	"nutrition/backend/internal/auth"
-	"nutrition/backend/internal/model"
+	"nutrition/backend/internal/domain/model"
+	"nutrition/backend/internal/domain/repository"
+	"nutrition/backend/internal/usecase"
 )
 
 type ProfileHandler struct {
-	DB *gorm.DB
+	uc usecase.ProfileUsecase
 }
 
-func NewProfileHandler(db *gorm.DB) *ProfileHandler {
-	return &ProfileHandler{DB: db}
+func NewProfileHandler(uc usecase.ProfileUsecase) *ProfileHandler {
+	return &ProfileHandler{uc: uc}
 }
 
 type profileResponse struct {
@@ -25,15 +26,14 @@ type profileResponse struct {
 }
 
 func (h *ProfileHandler) Get(c *echo.Context) error {
-	var p model.Profile
-	err := h.DB.WithContext(c.Request().Context()).Where("user_id = ?", auth.UserID(c)).First(&p).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
+	p, err := h.uc.Get(c.Request().Context(), auth.UserID(c))
+	if errors.Is(err, repository.ErrNotFound) {
 		return echo.NewHTTPError(http.StatusNotFound, "profile not set")
 	}
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to fetch profile")
+		return httpError(err, "failed to fetch profile")
 	}
-	return c.JSON(http.StatusOK, profileResponse{Profile: p, TargetKcal: p.TargetKcal()})
+	return c.JSON(http.StatusOK, profileResponse{Profile: *p, TargetKcal: p.TargetKcal()})
 }
 
 type putProfileRequest struct {
@@ -44,41 +44,17 @@ type putProfileRequest struct {
 	MonthlyBudget *int `json:"monthly_budget"`
 }
 
-func validBudget(yen int) bool {
-	return yen >= 0 && yen <= model.MaxYen
-}
-
 func (h *ProfileHandler) Put(c *echo.Context) error {
 	var req putProfileRequest
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request body")
 	}
-	if req.WeightNow <= 0 || req.WeightNow > 500 || req.WeightGoal <= 0 || req.WeightGoal > 500 {
-		return echo.NewHTTPError(http.StatusBadRequest, "weight must be between 0 and 500")
+	p, err := h.uc.Save(c.Request().Context(), auth.UserID(c), usecase.SaveProfileInput{
+		WeightNow: req.WeightNow, WeightGoal: req.WeightGoal,
+		ActivityLevel: req.ActivityLevel, MonthlyBudget: req.MonthlyBudget,
+	})
+	if err != nil {
+		return httpError(err, "failed to save profile")
 	}
-	if req.ActivityLevel < model.ActivityNormal || req.ActivityLevel > model.ActivityHigh {
-		return echo.NewHTTPError(http.StatusBadRequest, "activity_level must be 0, 1 or 2")
-	}
-	if req.MonthlyBudget != nil && !validBudget(*req.MonthlyBudget) {
-		return echo.NewHTTPError(http.StatusBadRequest, "monthly_budget must be between 0 and 10000000")
-	}
-
-	ctx := c.Request().Context()
-	userID := auth.UserID(c)
-	var p model.Profile
-	err := h.DB.WithContext(ctx).Where("user_id = ?", userID).First(&p).Error
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to fetch profile")
-	}
-	p.UserID = userID
-	p.WeightNow = req.WeightNow
-	p.WeightGoal = req.WeightGoal
-	p.ActivityLevel = req.ActivityLevel
-	if req.MonthlyBudget != nil {
-		p.MonthlyBudget = *req.MonthlyBudget
-	}
-	if err := h.DB.WithContext(ctx).Save(&p).Error; err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to save profile")
-	}
-	return c.JSON(http.StatusOK, profileResponse{Profile: p, TargetKcal: p.TargetKcal()})
+	return c.JSON(http.StatusOK, profileResponse{Profile: *p, TargetKcal: p.TargetKcal()})
 }

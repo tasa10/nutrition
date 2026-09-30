@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"nutrition/backend/internal/model"
+	"nutrition/backend/internal/domain/model"
 )
 
 // Stub returns deterministic placeholder data so the UI works without an API key.

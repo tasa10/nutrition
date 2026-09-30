@@ -13,7 +13,7 @@ import (
 	"google.golang.org/api/option"
 	"gorm.io/gorm"
 
-	"nutrition/backend/internal/model"
+	"nutrition/backend/internal/domain/model"
 )
 
 const bearerPrefix = "Bearer "
