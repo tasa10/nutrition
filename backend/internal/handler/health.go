@@ -6,17 +6,21 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v5"
-	"gorm.io/gorm"
 )
 
 const dbPingTimeout = 2 * time.Second
 
-type HealthHandler struct {
-	DB *gorm.DB
+// Pinger reports whether the database is reachable; *database.Pinger implements it.
+type Pinger interface {
+	Ping(ctx context.Context) error
 }
 
-func NewHealthHandler(db *gorm.DB) *HealthHandler {
-	return &HealthHandler{DB: db}
+type HealthHandler struct {
+	db Pinger
+}
+
+func NewHealthHandler(db Pinger) *HealthHandler {
+	return &HealthHandler{db: db}
 }
 
 func (h *HealthHandler) Get(c *echo.Context) error {
@@ -26,8 +30,7 @@ func (h *HealthHandler) Get(c *echo.Context) error {
 	dbStatus := "ok"
 	code := http.StatusOK
 
-	sqlDB, err := h.DB.DB()
-	if err != nil || sqlDB.PingContext(ctx) != nil {
+	if h.db.Ping(ctx) != nil {
 		dbStatus = "ng"
 		code = http.StatusServiceUnavailable
 	}

@@ -12,7 +12,7 @@ import (
 	"github.com/labstack/echo/v5"
 	"gorm.io/gorm"
 
-	"nutrition/backend/internal/model"
+	"nutrition/backend/internal/domain/model"
 )
 
 const contextKey = "auth.user"

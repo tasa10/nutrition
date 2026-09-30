@@ -20,8 +20,16 @@
 │   ├── cmd/api/       # エントリポイント
 │   └── internal/
 │       ├── config/    # 環境変数の読み込み
-│       ├── db/         # GORM 接続
-│       └── handler/    # HTTPハンドラ
+│       ├── domain/
+│       │   ├── model/       # エンティティ
+│       │   └── repository/  # リポジトリの interface
+│       ├── handler/    # HTTPハンドラ（リクエスト解釈・レスポンス整形のみ）
+│       ├── usecase/    # 業務ロジック
+│       ├── infrastructure/
+│       │   ├── database/    # GORM 接続・マイグレーション
+│       │   └── repository/  # リポジトリの GORM 実装
+│       ├── ai/         # AI プロバイダー
+│       └── auth/       # 認証
 ├── frontend/         # Next.js (CSR) アプリ
 │   └── src/app/       # App Router
 ├── docker-compose.yml
@@ -124,7 +132,7 @@ Claude Design で作成したモック `docs/mock/calorie-app-mock.dc.html`（�
 | POST | `/api/foods/search` | `{query}` → `{items[]}`（AIが候補を4件生成） |
 | GET | `/api/foods/frequent` | よく記録している品目（最大6件） |
 
-起動時に GORM の AutoMigrate でテーブル（`users` / `profiles` / `meals` / `meal_items` / `chat_messages`）を作成する（`backend/internal/db/migrate.go`）。食品マスタは持たず、カロリー・栄養素は AI の推定値を `meal_items` に直接保存する（初期の `foods` テーブルは起動時に削除する）。
+起動時に GORM の AutoMigrate でテーブル（`users` / `profiles` / `meals` / `meal_items` / `chat_messages`）を作成する（`backend/internal/infrastructure/database/migrate.go`）。食品マスタは持たず、カロリー・栄養素は AI の推定値を `meal_items` に直接保存する（初期の `foods` テーブルは起動時に削除する）。
 
 ## 認証
 

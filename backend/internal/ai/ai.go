@@ -5,7 +5,7 @@ import (
 	"errors"
 	"strings"
 
-	"nutrition/backend/internal/model"
+	"nutrition/backend/internal/domain/model"
 )
 
 // ErrRateLimited means the AI provider rejected the call for quota/rate reasons (HTTP 429).

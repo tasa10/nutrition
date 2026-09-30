@@ -1,9 +1,9 @@
-package db
+package database
 
 import (
 	"gorm.io/gorm"
 
-	"nutrition/backend/internal/model"
+	"nutrition/backend/internal/domain/model"
 )
 
 func Migrate(db *gorm.DB) error {
